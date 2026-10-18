@@ -1,5 +1,5 @@
 // Piano Coach offline cache. Bump VERSION whenever index.html changes so phones pick up the update.
-const VERSION = 'pc-2026-10-18-1';
+const VERSION = 'pc-2026-10-18-2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {

@@ -348,6 +348,7 @@ body.focus{--roll-h:max(120px, calc(100dvh - var(--kb-h) - 132px))}
         </div>
         <label class="check"><input type="checkbox" id="metroOn" checked> Keep clicking after the count-in</label>
         <div class="field"><label for="selView">Keys shown</label><select id="selView">
+          <option value="auto">Automatic: all 88 when the screen is wide</option>
           <option value="fit">Just the keys this exercise needs</option>
           <option value="wide">Four octaves</option>
           <option value="all">All 88 keys</option>
@@ -1258,7 +1259,8 @@ function rangePitches(){
   return T.expected.length ? T.expected.map(e => e.pitch) : [60];
 }
 function fitView(){
-  const mode = $('#selView').value;
+  let mode = $('#selView').value;
+  if (mode === 'auto') mode = innerWidth >= 760 ? 'all' : 'fit';
   if (mode === 'all') { setRange(KB_LO, KB_HI); return; }
   const ps = rangePitches(), need = mode === 'wide' ? 48 : 24;
   let lo = 12*Math.floor(Math.min(...ps)/12), hi = 12*Math.ceil((Math.max(...ps)+1)/12) - 1;
@@ -1812,7 +1814,9 @@ $('#copyCtx').addEventListener('click', async () => {
 
 /* ================= boot ================= */
 $('#latVal').textContent = `${store.latency} ms`;
-(function(){ let v = null; try { v = localStorage.getItem('pianoCoach.view'); } catch(_){} $('#selView').value = v || (Math.min(screen.width, innerWidth) < 1000 ? 'fit' : 'all'); })();
+(function(){ let v = null; try { v = localStorage.getItem('pianoCoach.view'); } catch(_){} $('#selView').value = v || 'auto'; })();
+let viewTimer = null;
+window.addEventListener('resize', () => { clearTimeout(viewTimer); viewTimer = setTimeout(() => { if ($('#selView').value === 'auto') fitView(); }, 150); });
 setRange(KB_LO, KB_HI);
 /* installable app: offline cache + install button */
 let installEvt = null;
