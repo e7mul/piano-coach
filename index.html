@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Piano Coach</title>
+<meta name="theme-color" content="#2f4bd6">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e8ebef; --surface:#f7f8fa; --surface-2:#eef1f4; --ink:#161a22; --muted:#5d6573; --line:#d3d8df;
+  --accent:#2f4bd6; --accent-ink:#ffffff; --good:#1c8a5a; --warn:#b7791f; --bad:#c93a3a;
+  --roll:#fbfcfd; --roll-dark-row:#f0f2f6; --grid:#e1e5ea; --grid-strong:#bfc6d0;
+  --white-key:#fdfdfb; --black-key:#1c1f26; --key-edge:#b9bfc8;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171c; --surface:#1c2027; --surface-2:#232833; --ink:#e9ecf1; --muted:#9aa3b2; --line:#2e3441;
+    --accent:#8ea0ff; --accent-ink:#0f1320; --good:#45c48b; --warn:#e3a94a; --bad:#f06a6a;
+    --roll:#191d24; --roll-dark-row:#15181e; --grid:#252a33; --grid-strong:#3a414f;
+    --white-key:#e6e8ec; --black-key:#0d0f13; --key-edge:#7d8491;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1c2027; --surface-2:#232833; --ink:#e9ecf1; --muted:#9aa3b2; --line:#2e3441;
+  --accent:#8ea0ff; --accent-ink:#0f1320; --good:#45c48b; --warn:#e3a94a; --bad:#f06a6a;
+  --roll:#191d24; --roll-dark-row:#15181e; --grid:#252a33; --grid-strong:#3a414f;
+  --white-key:#e6e8ec; --black-key:#0d0f13; --key-edge:#7d8491;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root{--roll-h:clamp(240px,40vh,440px);--kb-h:118px}
+button{touch-action:manipulation}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+
+.app{max-width:1440px;margin:0 auto;padding:18px 20px 90px}
+header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.45rem;letter-spacing:-.01em;margin:0}
+.midi{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status{display:flex;align-items:center;gap:8px;font-size:.92rem;color:var(--muted)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+select,input[type=number],input[type=text],input[type=password],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+select:disabled,input:disabled,button:disabled{opacity:.5;cursor:not-allowed}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:start}
+@media (max-width:1100px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.lesson{padding:16px 18px;margin-bottom:16px}
+.lesson summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.lesson summary::-webkit-details-marker{display:none}
+.step-no{color:var(--muted);font-size:.92rem;white-space:nowrap}
+.lesson h2{font-family:var(--display);font-weight:700;font-size:1.25rem;margin:0;letter-spacing:-.01em}
+.toggle{margin-left:auto;font-size:.88rem;color:var(--accent)}
+.lesson-body{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:12px}
+@media (max-width:800px){.lesson-body{grid-template-columns:1fr}}
+.lesson-body h3{font-size:.95rem;margin:0 0 4px}
+.lesson-body p{margin:0;font-size:.95rem;color:var(--ink);max-width:60ch}
+.links{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:12px;font-size:.92rem}
+.links span{color:var(--muted)}
+
+.stage{padding:18px 18px 16px;min-width:0}
+.ex-head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:2px}
+.ex-title{font-family:var(--display);font-weight:700;font-size:clamp(1.35rem,2.4vw,1.9rem);line-height:1.15;margin:0;letter-spacing:-.015em}
+.ex-meta{color:var(--muted);font-size:.95rem}
+.reason{color:var(--muted);font-size:.92rem;margin:4px 0 4px}
+.listen{font-size:.95rem;margin:0 0 12px}
+.listen b{font-weight:700}
+
+.live{display:flex;align-items:center;gap:14px;min-height:52px;margin-bottom:10px}
+.chip{font-family:var(--display);font-weight:500;font-size:1.3rem;line-height:1.2;padding:8px 14px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+.chip.good{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.streak{color:var(--muted);font-size:.95rem;margin-left:auto;white-space:nowrap}
+.streak b{color:var(--ink);font-size:1.15rem}
+
+.piano-scroll{overflow:hidden;border-radius:12px;border:1px solid var(--line)}
+.piano-inner{position:relative}
+canvas#roll{display:block;width:100%;height:var(--roll-h);background:var(--roll)}
+.countin{position:absolute;left:0;right:0;top:0;height:var(--roll-h);display:flex;align-items:center;justify-content:center;pointer-events:none;font-family:var(--display);font-weight:700;font-size:clamp(4rem,10vw,6.5rem);color:var(--accent);opacity:0}
+.countin.show{opacity:.9}
+.keyboard{position:relative;height:var(--kb-h);display:flex;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;border-top:4px solid var(--black-key)}
+.wk{flex:1;background:var(--white-key);border-right:1px solid var(--key-edge);border-radius:0 0 4px 4px;position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:.62rem;color:var(--muted);cursor:pointer;min-width:0}
+.bk{position:absolute;top:0;height:62%;background:var(--black-key);border-radius:0 0 3px 3px;z-index:2;cursor:pointer}
+.wk.next{background:color-mix(in srgb,var(--accent) 35%,var(--white-key))}
+.bk.next{background:color-mix(in srgb,var(--accent) 70%,var(--black-key))}
+.wk.down,.bk.down{background:var(--accent)}
+.wk.down[data-res=good],.bk.down[data-res=good]{background:var(--good)}
+.wk.down[data-res=off],.bk.down[data-res=off]{background:var(--warn)}
+.wk.down[data-res=wrong],.bk.down[data-res=wrong]{background:var(--bad)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin:10px 2px 4px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:8px;border-radius:3px;display:inline-block}
+.kbd-note{font-size:.85rem;color:var(--muted);margin:6px 0 0}
+
+.rec{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 14px;padding:12px;border-radius:10px;background:var(--surface-2)}
+.rec[hidden]{display:none}
+.rec label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.rec input,.rec select{width:100%}
+.rec p{grid-column:1/-1;margin:0;font-size:.9rem}
+
+.panel{padding:16px}
+.panel + .panel{margin-top:16px}
+.panel h2{font-family:var(--display);font-weight:700;font-size:1.1rem;margin:0 0 10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface-2);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.seg button{border:0;background:transparent;border-radius:8px;padding:8px 6px;cursor:pointer;color:var(--muted);font-size:.93rem}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 0 var(--line)}
+.field{display:grid;gap:4px;margin-bottom:10px}
+.field label{font-size:.88rem;color:var(--muted)}
+.field select{width:100%}
+.tempo{display:flex;align-items:center;gap:8px}
+.tempo input{width:84px;text-align:center}
+.tempo button,.btn-sm{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;cursor:pointer}
+.check{display:flex;align-items:center;gap:8px;font-size:.93rem;margin:6px 0 14px}
+.go{width:100%;border:0;border-radius:12px;padding:14px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:1.15rem;cursor:pointer}
+.go.stop{background:var(--ink);color:var(--surface)}
+.go.recording{background:var(--bad);color:#fff}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+.calib{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.9rem;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+
+.goal{font-size:.9rem;color:var(--muted);margin:0 0 12px}
+.path{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto}
+.unit-h{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:.9rem;margin:10px 4px 2px}
+.unit-h small{font-weight:400;color:var(--muted)}
+.unit-h.locked{color:var(--muted)}
+.path li button.d{width:100%;display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;border:0;background:transparent;border-radius:8px;padding:6px 8px;cursor:pointer}
+.path li button.d:hover{background:var(--surface-2)}
+.path li button.d[aria-current=true]{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.path li button.d.locked .p-name{color:var(--muted)}
+.p-name{font-size:.88rem}
+.p-bpm{font-size:.8rem;color:var(--muted);text-align:right;white-space:nowrap}
+.bar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar i.m{background:var(--good)}
+.path-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.p-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:.85rem;color:var(--muted)}
+.linkish{border:0;background:none;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0;font-size:.85rem}
+
+.summary{margin-top:16px;padding:20px}
+.summary[hidden]{display:none}
+.sum-top{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.score{font-family:var(--display);font-weight:700;font-size:3.4rem;line-height:1;letter-spacing:-.03em}
+.score small{font-size:1rem;color:var(--muted);font-weight:500;letter-spacing:0}
+.verdict{flex:1;min-width:220px;font-size:1.05rem}
+.verdict p{margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.stat .v{font-family:var(--display);font-weight:700;font-size:1.3rem}
+.stat .k{font-size:.85rem;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media (max-width:640px){.charts{grid-template-columns:1fr}}
+.chart h3{font-size:.95rem;margin:0 0 6px;font-weight:700}
+.chart canvas{width:100%;height:130px;display:block;background:var(--roll);border:1px solid var(--line);border-radius:10px}
+.insights{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:8px;max-width:78ch}
+.insights li{padding:8px 12px;border-left:4px solid var(--line);background:var(--surface-2);border-radius:0 8px 8px 0}
+.insights li.good{border-color:var(--good)} .insights li.warn{border-color:var(--warn)} .insights li.bad{border-color:var(--bad)}
+.sum-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sum-actions button,.btn{border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:700;border:1px solid var(--line);background:var(--surface)}
+.sum-actions button.primary,.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.notice{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));border-radius:10px;padding:10px 12px;font-size:.9rem;margin-bottom:14px}
+.notice[hidden]{display:none}
+
+/* coach chat */
+.chat-fab{position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:20;border:0;border-radius:999px;padding:13px 20px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:1.02rem;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);z-index:30;background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:-10px 0 40px rgba(0,0,0,.15)}
+.drawer[hidden]{display:none}
+.d-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.d-head h2{font-family:var(--display);font-size:1.15rem;margin:0}
+.d-head .ctx{font-size:.82rem;color:var(--muted)}
+.d-head button{margin-left:auto}
+.msgs{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:.95rem}
+.msg p{margin:0 0 .5em} .msg p:last-child{margin:0}
+.msg ul,.msg ol{margin:.2em 0 .5em;padding-left:1.2em}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.msg.bot{align-self:flex-start;background:var(--surface-2)}
+.msg.err{align-self:stretch;background:color-mix(in srgb,var(--bad) 14%,var(--surface));font-size:.9rem}
+.msg.sys{align-self:stretch;color:var(--muted);font-size:.88rem;background:none;padding:0}
+.quick{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 8px}
+.quick button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:.85rem;cursor:pointer}
+.composer{display:flex;gap:8px;padding:10px 16px 14px;border-top:1px solid var(--line)}
+.composer textarea{flex:1;resize:none;height:64px}
+.settings{border-top:1px solid var(--line);padding:10px 16px 14px;font-size:.9rem}
+.settings summary{cursor:pointer;color:var(--muted)}
+.settings label{display:grid;gap:4px;margin-top:10px;color:var(--muted);font-size:.85rem}
+.settings input,.settings textarea{width:100%}
+.settings p{margin:8px 0 0;color:var(--muted);font-size:.83rem}
+.stage-ctrl{display:flex;align-items:center;gap:8px;margin-left:auto}
+.go-sm{border:0;border-radius:10px;padding:9px 18px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-weight:700;font-size:1rem;cursor:pointer;white-space:nowrap}
+.go-sm.stop{background:var(--ink);color:var(--surface)}
+.go-sm.recording{background:var(--bad);color:#fff}
+.icon-btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:.92rem;white-space:nowrap}
+.install{border:0;border-radius:8px;padding:7px 12px;background:var(--accent);color:var(--accent-ink);font-weight:700;cursor:pointer}
+.install[hidden]{display:none}
+/* phones */
+@media (max-width:700px){
+  :root{--kb-h:96px;--roll-h:clamp(200px,38vh,360px)}
+  .app{padding:12px 12px 90px}
+  .stage{padding:12px}
+  .lesson{padding:12px 14px}
+  .chip{font-size:1.05rem;padding:7px 11px}
+  .live{gap:10px;min-height:44px;flex-wrap:wrap}
+  .streak{margin-left:0}
+  .stage-ctrl{width:100%;margin-left:0}
+  .stage-ctrl .go-sm{flex:1;padding:12px}
+  .score{font-size:2.6rem}
+  .chat-fab{right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));padding:11px 16px;font-size:.95rem}
+  .midi{margin-left:0;width:100%}
+  .midi select{flex:1;min-width:0}
+}
+@media (max-height:500px){
+  :root{--kb-h:80px;--roll-h:clamp(150px,48vh,300px)}
+}
+@media (hover:none) and (pointer:coarse){ .kbd-note{display:none} }
+body.running .chat-fab{display:none}
+/* focus mode: only the falling notes, keyboard and controls */
+body.focus header.top,body.focus .notice,body.focus #lesson,body.focus aside,body.focus .chat-fab,body.focus .legend,body.focus .kbd-note,body.focus .reason,body.focus .listen,body.focus #recPanel{display:none!important}
+body.focus .layout{grid-template-columns:1fr}
+body.focus .app{padding:8px 10px 10px;max-width:none}
+body.focus .stage{padding:10px 10px 8px;border-radius:12px}
+body.focus .ex-head{margin:0}
+body.focus .ex-title{font-size:1.1rem}
+body.focus .live{min-height:0;margin:6px 0}
+body.focus .stage-ctrl{width:auto;margin-left:auto}
+body.focus{--roll-h:max(120px, calc(100dvh - var(--kb-h) - 132px))}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 class="brand">Piano Coach</h1>
+    <div class="midi">
+      <div class="status"><span class="dot" id="midiDot"></span><span id="midiText">Looking for your piano…</span></div>
+      <select id="midiSelect" aria-label="MIDI input"><option value="all">All MIDI inputs</option></select>
+      <button class="btn-sm" id="midiRetry" hidden>Connect piano</button>
+      <button class="install" id="btnInstall" hidden>Install app</button>
+    </div>
+  </header>
+  <div class="notice" id="midiNotice" hidden></div>
+
+  <div class="layout">
+    <main>
+      <details class="card lesson" id="lesson" open>
+        <summary><span class="step-no" id="stepNo"></span><h2 id="unitTitle"></h2><span class="toggle" id="lessonToggle">Hide intro</span></summary>
+        <div class="lesson-body">
+          <div><h3>What you're learning</h3><p id="uWhat"></p></div>
+          <div><h3>Why it matters for your piece</h3><p id="uWhy"></p></div>
+          <div><h3>How to practise it</h3><p id="uHow"></p></div>
+        </div>
+        <div class="links" id="uLinks"></div>
+      </details>
+
+      <section class="card stage" aria-label="Exercise">
+        <div class="ex-head">
+          <h2 class="ex-title" id="exTitle">—</h2>
+          <div class="ex-meta" id="exMeta"></div>
+        </div>
+        <p class="reason" id="reason"></p>
+        <p class="listen" id="listen"></p>
+
+        <div class="rec" id="recPanel" hidden>
+          <p>Play a passage from your score along with the click. The app snaps your notes to the beat grid and turns them into a drill. Pick a slow tempo you can play cleanly.</p>
+          <label>Name<input type="text" id="recName" placeholder="e.g. Bar 5, right hand"></label>
+          <label>Recording tempo (BPM)<input type="number" id="recBpm" min="30" max="160" value="50"></label>
+          <label>Shortest note<select id="recGrid"><option value="0.5">Eighth note</option><option value="0.25" selected>Sixteenth note</option></select></label>
+          <label>Beats per bar<select id="recBar"><option>4</option><option>3</option><option>2</option></select></label>
+          <label>Left hand below<select id="recSplit"></select></label>
+          <label>Goal tempo (BPM)<input type="number" id="recGoal" min="30" max="200" value="70"></label>
+        </div>
+
+        <div class="live" aria-live="polite">
+          <div class="chip" id="chip">Press Start or the space bar when you're ready</div>
+          <div class="streak">Streak <b id="streak">0</b></div>
+          <div class="stage-ctrl">
+            <button class="go-sm" id="btnGo2">Start</button>
+            <button class="icon-btn" id="btnFocus" aria-pressed="false">Focus</button>
+          </div>
+        </div>
+        <div class="piano-scroll" id="pianoScroll">
+          <div class="piano-inner">
+            <canvas id="roll" aria-label="Falling notes above the keyboard"></canvas>
+            <div class="countin" id="countin"></div>
+            <div class="keyboard" id="keyboard"></div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--good)"></i>Right note, on time</span>
+          <span><i class="sw" style="background:var(--warn)"></i>Right note, early or late</span>
+          <span><i class="sw" style="background:var(--bad)"></i>Wrong or missed note</span>
+          <span><i class="sw" style="background:var(--muted)"></i>Extra note</span>
+        </div>
+        <p class="kbd-note">No piano connected? Use the computer keys A S D F G H J K (white) and W E T Y U (black); Z and X change octave (<span id="octLabel">C4</span>).</p>
+      </section>
+
+      <section class="card summary" id="summary" hidden aria-live="polite">
+        <div class="sum-top">
+          <div class="score" id="sumScore">0<small> / 100</small></div>
+          <div class="verdict"><p id="sumVerdict"></p></div>
+        </div>
+        <div class="stats" id="sumStats"></div>
+        <div class="charts">
+          <div class="chart" id="chTimingBox"><h3 id="chTimingTitle">Timing per note (above the line is late)</h3><canvas id="chTiming"></canvas></div>
+          <div class="chart" id="chVelBox"><h3 id="chVelTitle">Loudness per note</h3><canvas id="chVel"></canvas></div>
+        </div>
+        <ul class="insights" id="sumInsights"></ul>
+        <div class="sum-actions">
+          <button class="primary" id="btnNext">Next exercise</button>
+          <button id="btnRetry">Try again</button>
+          <button id="btnAskTake">Ask the coach about this take</button>
+        </div>
+      </section>
+    </main>
+
+    <aside>
+      <section class="card panel" aria-label="Practice settings">
+        <div class="seg" role="group" aria-label="Who picks the exercise">
+          <button id="segAuto" aria-pressed="true">Coach picks</button>
+          <button id="segManual" aria-pressed="false">I pick</button>
+        </div>
+        <div class="field"><label for="selUnit">Step</label><select id="selUnit"></select></div>
+        <div class="field"><label for="selDrill">Exercise</label><select id="selDrill"></select></div>
+        <div class="seg" role="group" aria-label="Practice mode">
+          <button id="modeWait" aria-pressed="false">Wait for me</button>
+          <button id="modeTempo" aria-pressed="true">With metronome</button>
+        </div>
+        <div class="field">
+          <label for="bpm">Tempo (BPM)</label>
+          <div class="tempo">
+            <button id="bpmDown" aria-label="Slower">−</button>
+            <input type="number" id="bpm" min="30" max="220" value="60">
+            <button id="bpmUp" aria-label="Faster">+</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="metroOn" checked> Keep clicking after the count-in</label>
+        <div class="field"><label for="selView">Keys shown</label><select id="selView">
+          <option value="fit">Just the keys this exercise needs</option>
+          <option value="wide">Four octaves</option>
+          <option value="all">All 88 keys</option>
+        </select></div>
+        <button class="go" id="btnGo">Start</button>
+        <p class="hint">"Wait for me" pauses on each note until you find it. Use it to learn the notes, then switch to the metronome. On a phone, Focus hides everything but the notes and keys.</p>
+        <div class="calib">
+          <span>Timing offset: <b id="latVal">0 ms</b></span>
+          <button class="btn-sm" id="btnCalib">Calibrate</button>
+        </div>
+      </section>
+
+      <section class="card panel" aria-label="Your path">
+        <h2>Your path</h2>
+        <p class="goal" id="goalLine"></p>
+        <ul class="path" id="path"></ul>
+        <div class="path-actions">
+          <button class="btn-sm" id="btnRecord">Record a passage</button>
+          <button class="btn-sm" id="btnExport">Export progress</button>
+          <button class="btn-sm" id="btnImport">Import progress</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+        </div>
+        <div class="p-foot"><span id="pSummary"></span><button class="linkish" id="btnReset">Reset progress</button></div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<button class="chat-fab" id="chatOpen" aria-haspopup="dialog">Ask the coach</button>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-label="Coach chat">
+  <div class="d-head">
+    <div><h2>Ask the coach</h2><div class="ctx" id="chatCtx"></div></div>
+    <button class="btn-sm" id="chatClose">Close</button>
+  </div>
+  <div class="msgs" id="msgs"></div>
+  <div class="quick" id="quick">
+    <button data-q="Why am I learning this, and how does it connect to River Flows in You?">Why this exercise?</button>
+    <button data-q="Look at my last take. What is the one thing I should fix first, and how?">Fix my last take</button>
+    <button data-q="Based on my progress, what should I practise today and for how long?">Plan today</button>
+  </div>
+  <div class="composer">
+    <textarea id="chatInput" placeholder="Ask about this lesson, your last take, or your piece…" aria-label="Your question"></textarea>
+    <button class="btn primary" id="chatSend">Send</button>
+  </div>
+  <details class="settings" id="chatSettings">
+    <summary>Coach settings</summary>
+    <label>Your goal (the coach and the path are built around it)<textarea id="goalInput" rows="3"></textarea></label>
+    <label>Anthropic API key<input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-…"></label>
+    <label>Model<input type="text" id="apiModel"></label>
+    <p>The key stays in this browser and is sent only to Anthropic's API. Requests are billed to your Anthropic account, and it is never included in progress exports.</p>
+    <p>No key? <button class="linkish" id="copyCtx">Copy your lesson context</button> and paste it into a Claude chat with your question.</p>
+  </details>
+</aside>
+
+<script>
+"use strict";
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const mean = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : 0;
+const stdev = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)); };
+const median = a => { if (!a.length) return 0; const b=[...a].sort((x,y)=>x-y); const h=b.length>>1; return b.length%2 ? b[h] : (b[h-1]+b[h])/2; };
+const ms = x => `${Math.round(Math.abs(x))} ms`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rep = (s, n) => Array(n).fill(s).join(' ');
+function corr(a, b){ const ma=mean(a), mb=mean(b); let n=0, da=0, db=0; for (let i=0;i<a.length;i++){ n+=(a[i]-ma)*(b[i]-mb); da+=(a[i]-ma)**2; db+=(b[i]-mb)**2; } return da&&db ? n/Math.sqrt(da*db) : 0; }
+
+/* ================= music ================= */
+const SHARP = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const PCI = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+const isBlack = p => SHARP[((p%12)+12)%12].length > 1;
+const noteName = m => SHARP[((m%12)+12)%12] + (Math.floor(m/12)-1);
+const letter = m => SHARP[((m%12)+12)%12];
+function P(s){
+  const m = /^([A-G])(#|b)?(-?\d)$/.exec(s); if (!m) throw new Error('Bad pitch ' + s);
+  return 12*(+m[3]+1) + PCI[m[1]] + (m[2]==='#' ? 1 : m[2]==='b' ? -1 : 0);
+}
+function parseTrack(str, hand, out){
+  let b = 0;
+  for (const tok of (str.match(/\[[^\]]*\](?::[\d.]+)?|\S+/g) || [])) {
+    const m = /^(.*?)(?::([\d.]+))?$/.exec(tok);
+    const head = m[1], dur = parseFloat(m[2] || '1');
+    if (head !== 'r') {
+      const ps = head.startsWith('[') ? head.slice(1,-1).trim().split(/\s+/) : [head];
+      ps.forEach(p => out.push({pitch:P(p), beat:b, dur, hand}));
+    }
+    b += dur;
+  }
+  return b;
+}
+function autoBars(total, per){ const bars=[]; let t=0; while (t < total - 1e-6) { const b = Math.min(per, Math.ceil(total - t)); bars.push(b); t += b; } return bars.length ? bars : [per]; }
+function barStarts(bars){ const s=new Set([0]); let t=0; bars.forEach(b=>{ t+=b; s.add(t); }); return s; }
+
+/* ================= curriculum ================= */
+const ML = n => `https://www.musictheory.net/lessons/${n}`;
+const MX = s => `https://www.musictheory.net/exercises/${s}`;
+const LH_ROLL8 = rep('F#2:.5 C#3:.5 F#3:.5 C#3:.5',2)+' '+rep('D2:.5 A2:.5 D3:.5 A2:.5',2)+' '+rep('A2:.5 E3:.5 A3:.5 E3:.5',2)+' '+rep('E2:.5 B2:.5 E3:.5 B2:.5',2);
+
+const UNITS = [
+ {id:'keys', title:'Find any key without hunting',
+  what:'The keyboard is one 12-key pattern repeated: groups of two and three black keys. Every white key has a fixed spot next to them. C sits just left of the pair, F just left of the trio, and the letters run A to G before starting over.',
+  why:'When reading feels slow, it is usually because your hand is hunting for keys. Your arrangement spans almost the whole keyboard, so finding notes by the black-key landmarks is the cheapest speed-up you can get.',
+  how:'Say the note name out loud as you press it. Any octave counts. Go for accuracy first; the coach shortens your time goal as you improve.',
+  links:[['Lesson','Steps and accidentals',ML(20)],['Exercise','Keyboard reverse identification',MX('keyboard-reverse')]],
+  drills:[
+   {id:'find-anchors', kind:'quiz', title:'Find every C, F and G', pool:[0,5,7], prompts:12, rtStart:3000, rtGoal:1000, listen:'C is left of the two black keys, F is left of the three.'},
+   {id:'find-whites', kind:'quiz', title:'Find any white key', pool:[0,2,4,5,7,9,11], prompts:14, rtStart:3000, rtGoal:1200, listen:'Count up from the nearest C or F instead of guessing.'},
+  ]},
+ {id:'staff', title:'Reading notes on the staff',
+  what:'Five lines and four spaces; a note\u2019s height tells you which key. The treble clef (top staff, right hand) has E4 on the bottom line; the bass clef (bottom staff, left hand) has G2 on the bottom line. Notes above or below get short ledger lines.',
+  why:'This is how you will read your score instead of copying a video. The right hand of your arrangement lives mostly between C4 and A5, and the left hand between F2 and E4, so those are exactly the ranges drilled here.',
+  how:'Find the note\u2019s line or space, name it, then play that exact key, in the right octave. Use landmarks: the bottom treble line is E4, middle C sits on one ledger line between the staves.',
+  links:[['Lesson','The staff, clefs and ledger lines',ML(10)],['Exercise','Note identification',MX('note')]],
+  drills:[
+   {id:'read-treble', kind:'quiz', title:'Read treble notes, right hand', clef:'treble', staffPool:['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5','A5'], prompts:14, rtStart:4500, rtGoal:1600, listen:'Lines from the bottom: E G B D F. Spaces: F A C E.'},
+   {id:'read-bass', kind:'quiz', title:'Read bass notes, left hand', clef:'bass', staffPool:['F2','G2','A2','B2','C3','D3','E3','F3','G3','A3','B3','C4'], prompts:14, rtStart:4500, rtGoal:1600, listen:'Lines from the bottom: G B D F A. Spaces: A C E G.'},
+  ]},
+ {id:'sharps', title:'Sharps and the key of your piece',
+  what:'A half step is the very next key, black or white. A sharp (\u266f) raises a note by a half step. A key signature lists sharps that apply to the whole piece. Yours has three: F\u266f, C\u266f and G\u266f, which means A major.',
+  why:'Almost every phrase of River Flows in You touches those three black keys. Playing F, C or G as a white key is the most common wrong note in this key, and the coach points it out when it happens.',
+  how:'Before each take, say \u201cF, C and G are sharp.\u201d In the staff drill the sharps are only shown once, at the start, just like in your score.',
+  links:[['Lesson','Steps and accidentals',ML(20)],['Lesson','Key signatures',ML(24)],['Exercise','Key signature identification',MX('keysig')]],
+  drills:[
+   {id:'find-sharps', kind:'quiz', title:'Find F\u266f, C\u266f and G\u266f', pool:[6,1,8,6,1,8,9,4,2], prompts:14, rtStart:3000, rtGoal:1100, listen:'F\u266f is the first key of the trio of black keys, C\u266f the first of the pair.'},
+   {id:'read-asig', kind:'quiz', title:'Read with three sharps in the key', clef:'treble', keysig:3, staffPool:['A4','B4','C5','D5','E5','F5','G5','A5','F4','G4','E4','C4'], prompts:14, rtStart:4500, rtGoal:1700, listen:'Every F, C and G is sharp, even though the note itself shows no sign. The note on the first ledger line above the staff is A5, a white key.'},
+   {id:'penta-a-r', title:'Five notes of A major, right hand', R:'A4 B4 C#5 D5 E5 D5 C#5 B4 A4:2', start:56, target:100, listen:'Thumb on A, one finger per key. C\u266f is the black key under finger 3.'},
+   {id:'penta-a-l', title:'Five notes of A major, left hand', L:'A2 B2 C#3 D3 E3 D3 C#3 B2 A2:2', start:56, target:100, listen:'Little finger on A, thumb on E.'},
+  ]},
+ {id:'pulse', title:'Pulse and note values',
+  what:'A note\u2019s shape gives its length. A quarter note is one beat, eighths split it in two, sixteenths in four. 4/4 means four quarter-note beats per bar, and \u2669 = 70 means 70 beats per minute.',
+  why:'The flowing passages in your arrangement are beamed eighths and sixteenths at around \u2669 = 70. If they are uneven, the piece sounds like button-pressing; if they are even, it flows. That evenness is exactly what the coach measures here.',
+  how:'Count out loud: \u201c1 and 2 and\u201d for eighths, \u201c1 e and a\u201d for sixteenths. The pitches are deliberately simple so all your attention goes to time.',
+  links:[['Lesson','Note duration',ML(11)],['Lesson','Measures and time signature',ML(12)]],
+  drills:[
+   {id:'pulse-qe', title:'Quarters and eighths', skipWait:true, R:rep('A4',4)+' '+rep('A4:.5',8)+' '+rep('A4',4)+' '+rep('A4:.5',8)+' A4:4', start:60, target:96, listen:'Each eighth note falls exactly halfway between clicks.'},
+   {id:'pulse-es', title:'Eighths into sixteenths', skipWait:true, R:rep('A4:.5 C#5:.5',4)+' '+rep('A4:.25 C#5:.25',8)+' '+rep('A4:.5 C#5:.5',4)+' '+rep('A4:.25 C#5:.25',8)+' A4:4', start:46, target:70, listen:'Your arrangement runs sixteenths at \u2669 = 70. That is the goal tempo for this drill.'},
+   {id:'pulse-mix', title:'Changing note values', R:rep('A4:1 B4:.5 C#5:.5 D5:.25 C#5:.25 B4:.25 A4:.25 E4:1',2)+' A4:4', start:50, target:80, listen:'Keep the beat steady inside you while the note values change.'},
+  ]},
+ {id:'dots', title:'Dots, ties and rests',
+  what:'A dot adds half the note\u2019s value, so a dotted quarter lasts one and a half beats. A tie joins two notes: hold, don\u2019t replay. A rest is a measured silence, counted like a note.',
+  why:'Your melody uses dotted rhythms and notes tied across bar lines, and phrases breathe at the rests. Holding long notes for their full value is a big part of the \u201cdepth\u201d you said was missing.',
+  how:'Keep counting through long notes and silences. The coach checks how long you hold each note and whether you lift at the rests.',
+  links:[['Lesson','Rest duration',ML(13)],['Lesson','Dots and ties',ML(14)]],
+  drills:[
+   {id:'dotted', title:'Dotted rhythms', R:'A4:1.5 B4:.5 C#5:1.5 B4:.5 A4:1.5 C#5:.5 E5:2 D5:1.5 C#5:.5 B4:1.5 A4:.5 B4:4', start:50, target:84, listen:'Count \u201c1 and 2 and\u201d: the short note lands on the \u201cand\u201d.'},
+   {id:'ties-rests', title:'Hold through ties, lift at rests', R:'A4:2.5 B4:.5 C#5:1 r:1 E5:1 r:.5 D5:.5 C#5:2 B4:3 r:1 A4:2 r:2', start:50, target:84, listen:'The C\u266f crossing the bar line is tied: hold it, don\u2019t strike it again.'},
+  ]},
+ {id:'scale', title:'The A major scale: your piece\u2019s note set',
+  what:'A major scale follows the step pattern whole, whole, half, whole, whole, whole, half from A: A B C\u266f D E F\u266f G\u266f A. These are exactly the notes in your key signature.',
+  why:'Every run in the arrangement is a slice of this one scale. You are not learning scales in all keys, only the one your piece is written in, and the thumb-under move you learn here is the one the runs need.',
+  how:'Right hand fingers 1 2 3, then thumb under onto D, then 1 2 3 4 5. Left hand 5 4 3 2 1, then finger 3 over onto F\u266f. The coach watches the timing at those crossings.',
+  links:[['Lesson','The major scale',ML(21)],['Lesson','Scale degrees',ML(23)],['Exercise','Keyboard scale identification',MX('keyboard-scale')]],
+  drills:[
+   {id:'scale-a-r', title:'A major scale, right hand', R:'A4 B4 C#5 D5 E5 F#5 G#5 A5 G#5 F#5 E5 D5 C#5 B4 A4:2', cross:{R:[3,12]}, start:56, target:100, listen:'Smooth thumb crossing onto D on the way up and onto C\u266f on the way down.'},
+   {id:'scale-a-l', title:'A major scale, left hand', L:'A2 B2 C#3 D3 E3 F#3 G#3 A3 G#3 F#3 E3 D3 C#3 B2 A2:2', cross:{L:[5,10]}, start:56, target:100, listen:'Finger 3 crosses over onto F\u266f; the thumb returns onto E coming down.'},
+  ]},
+ {id:'intervals', title:'Intervals: shapes your hands make',
+  what:'An interval is the distance between two notes, counted by letter names: A up to E is a fifth, A to the next A is an octave. Each interval has a fixed hand shape.',
+  why:'The left hand of your piece is built mostly from fifths and octaves, and the right hand reaches for octaves in the fuller sections. If your hand knows the shape, you can jump without looking down.',
+  how:'Look at the first key, then let the hand shape find the other note by feel. Play both notes together only once you can find them separately.',
+  links:[['Lesson','Generic intervals',ML(30)],['Lesson','Specific intervals',ML(31)],['Exercise','Keyboard interval identification',MX('keyboard-interval')],['Exercise','Interval ear training',MX('ear-interval')]],
+  drills:[
+   {id:'fifths-lh', title:'Left-hand fifths on the piece\u2019s bass notes', L:'F#2 C#3 [F#2 C#3]:2 D2 A2 [D2 A2]:2 A2 E3 [A2 E3]:2 E2 B2 [E2 B2]:2', start:50, target:84, listen:'Fingers 5 and 1. The hand shape stays identical; only the position moves.'},
+   {id:'octaves-rh', title:'Right-hand octave reach', R:'A4 A5 [A4 A5]:2 F#4 F#5 [F#4 F#5]:2 E4 E5 [E4 E5]:2 C#5 C#6 [C#5 C#6]:2', start:50, target:80, listen:'Thumb and little finger. Keep the wrist loose; don\u2019t lock the hand open.'},
+  ]},
+ {id:'triads', title:'Triads: the four chords behind your piece',
+  what:'A triad is three notes stacked in thirds: root, third, fifth. A major third gives a major chord, a minor third a minor one. In A major the main chords are A (I), D (IV), E (V) and F\u266f minor (vi).',
+  why:'River Flows in You keeps cycling through F\u266fm \u2013 D \u2013 A \u2013 E (vi \u2013 IV \u2013 I \u2013 V), one of the most common progressions in pop. Once your hands know these four shapes, most bars of the score become \u201cwhich of my four chords is this?\u201d',
+  how:'Fingers 1 3 5. Drop all three fingers at once from a relaxed wrist. The coach measures how evenly the three notes land.',
+  links:[['Lesson','Introduction to chords',ML(40)],['Lesson','Diatonic triads',ML(43)],['Lesson','Roman numeral analysis',ML(44)],['Exercise','Keyboard chord identification',MX('keyboard-chord')]],
+  drills:[
+   {id:'block-triads', title:'The four chords, block', R:rep('[F#4 A4 C#5]:2 [D4 F#4 A4]:2 [A4 C#5 E5]:2 [E4 G#4 B4]:2',2)+' [A4 C#5 E5]:4', start:50, target:90, listen:'All three notes should land together, within a few milliseconds.'},
+   {id:'broken-triads', title:'The four chords, broken', R:rep('F#4:.5 A4:.5 C#5:.5 A4:.5 D4:.5 F#4:.5 A4:.5 F#4:.5 A4:.5 C#5:.5 E5:.5 C#5:.5 E4:.5 G#4:.5 B4:.5 G#4:.5',2)+' [A4 C#5 E5]:2', start:50, target:84, listen:'Even eighths, like a quiet harp.'},
+  ]},
+ {id:'inversions', title:'Inversions: change chords without jumping',
+  what:'An inversion uses the same three notes with a different one at the bottom. By choosing inversions you can keep the notes that two chords share and move the others by a step.',
+  why:'Your arrangement rarely jumps the hand from chord to chord. It slides between nearby shapes, which is why it sounds smooth. Learning to change chords this way makes the thick middle section far easier.',
+  how:'Notice which notes stay put between chords (A stays from F\u266fm to D to A) and only move the fingers that must.',
+  links:[['Lesson','Triad inversion',ML(42)],['Lesson','Triads in first inversion',ML(60)]],
+  drills:[
+   {id:'smooth-chords', title:'vi \u2013 IV \u2013 I \u2013 V with smooth voicing', R:rep('[F#4 A4 C#5]:2 [F#4 A4 D5]:2 [E4 A4 C#5]:2 [E4 G#4 B4]:2',2)+' [E4 A4 C#5]:4', start:50, target:90, listen:'The hand barely moves. Keep the A under the same finger as long as it stays.'},
+  ]},
+ {id:'lefthand', title:'The rolling left hand',
+  what:'A broken-chord accompaniment spreads the chord out in time: root, fifth, octave, usually in steady eighths and held together with the pedal.',
+  why:'This rolling pattern is the engine under almost all of your arrangement. A quiet, even left hand is what lets the melody sing on top; an uneven one is the first thing a listener hears as \u201cbeginner\u201d.',
+  how:'Keep it soft and even. The coach checks the evenness of timing and volume. Add the pedal once it is even without it.',
+  links:[['Lesson','Voicing chords',ML(51)],['Lesson','Common chord progressions',ML(57)]],
+  drills:[
+   {id:'lh-roll', title:'Root, fifth, octave', L:LH_ROLL8+' A2:4', start:50, target:76, listen:'All eighths equally soft, no accent on the top note.'},
+   {id:'lh-wide', title:'Wider roll up to the tenth', L:rep('F#2:.5 C#3:.5 F#3:.5 A3:.5',2)+' '+rep('D2:.5 A2:.5 D3:.5 F#3:.5',2)+' '+rep('A2:.5 E3:.5 A3:.5 C#4:.5',2)+' '+rep('E2:.5 B2:.5 E3:.5 G#3:.5',2)+' A2:4', start:46, target:72, listen:'Let the hand travel up the pattern instead of stretching wide.'},
+  ]},
+ {id:'together', title:'Hands together: melody over accompaniment',
+  what:'Two hands, two jobs: the left hand keeps the pulse and harmony, the right hand carries the tune. Both have to share one beat.',
+  why:'Your whole piece is a singing melody over a rolling left hand. The coach checks that the hands land together and that the right hand is louder, which is the balance that makes it sound musical.',
+  how:'Play each hand alone at this tempo first. Then together, slowly, letting the right hand sing and the left hand whisper.',
+  links:[['Lesson','Voicing chords',ML(51)]],
+  drills:[
+   {id:'together-1', title:'Long notes over a walking bass', balance:true, R:'C#5:4 D5:4 C#5:4 B4:4 A4:4', L:'F#2 C#3 F#3 C#3 D2 A2 D3 A2 A2 E3 A3 E3 E2 B2 E3 B2 A2:4', start:50, target:80, listen:'The right-hand note should ring out above the left hand.'},
+   {id:'together-2', title:'A moving line over the roll', balance:true, R:'A4 B4 C#5 A4 D5 C#5 B4 A4 C#5 B4 A4 C#5 B4 G#4 E4 G#4 [A4 C#5]:4', L:'F#2:.5 C#3:.5 F#3:.5 C#3:.5 F#2:.5 C#3:.5 F#3:.5 C#3:.5 D2:.5 A2:.5 D3:.5 A2:.5 D2:.5 A2:.5 D3:.5 A2:.5 A2:.5 E3:.5 A3:.5 E3:.5 A2:.5 E3:.5 A3:.5 E3:.5 E2:.5 B2:.5 E3:.5 B2:.5 E2:.5 B2:.5 E3:.5 B2:.5 A2:4', start:44, target:70, listen:'Two left-hand notes for every right-hand note. Count \u201c1 and 2 and\u201d.'},
+  ]},
+ {id:'meter', title:'Bars of 3 between bars of 4',
+  what:'A time signature can change mid-piece. In 3/4 each bar has three beats instead of four; the first beat of each bar still gets the weight.',
+  why:'The opening of your arrangement alternates 4/4 and 3/4 bars, and a 2/4 bar appears before a tempo change. If you keep counting in four, you will come in early or late.',
+  how:'Count bar by bar out loud: \u201c1 2 3 4, 1 2 3\u201d. The metronome\u2019s higher click marks the start of each bar.',
+  links:[['Lesson','Measures and time signature',ML(12)],['Lesson','Simple and compound meter',ML(15)]],
+  drills:[
+   {id:'meter-43', title:'Alternating 4/4 and 3/4', bars:[4,3,4,3,4,3,4], R:'C#5 A4 F#4 A4 D5 A4 F#4 E5 C#5 A4 C#5 B4 G#4 E4 C#5 A4 F#4 A4 D5 A4 F#4 A4:4', L:'F#2:4 D2:3 A2:4 E2:3 F#2:4 D2:3 A2:4', start:50, target:80, listen:'The left-hand note always falls on beat 1.'},
+  ]},
+ {id:'shape', title:'Shaping a phrase',
+  what:'Dynamics are loudness: p (soft), mp, mf, f (loud). Hairpins mean grow louder (crescendo) or softer (diminuendo). A phrase is a musical sentence that rises and settles.',
+  why:'You described your playing as pressing the right buttons. The difference between that and music is mostly here: phrases that swell and relax. Your score is full of cresc., espress. and hairpins.',
+  how:'Shape with arm weight, not by tightening fingers. The coach compares your loudness with the target shape drawn on the loudness chart.',
+  links:[['Lesson','Phrases and cadences',ML(55)]],
+  drills:[
+   {id:'cresc-dim', title:'Crescendo up, diminuendo down', skipWait:true, R:'A4 B4 C#5 D5 E5 F#5 G#5 A5 G#5 F#5 E5 D5 C#5 B4 A4:2', dyn:[.15,.25,.35,.45,.55,.65,.8,.95,.8,.65,.55,.45,.35,.25,.15], start:56, target:90, listen:'Each note a little louder than the last, peak on the top A.'},
+   {id:'echo', title:'Echo: loud, then soft', skipWait:true, R:rep('E5:.5 D5:.5 C#5:.5 B4:.5',4)+' A4:2', dyn:[1,1,1,1,.3,.3,.3,.3,1,1,1,1,.3,.3,.3,.3,.3], start:50, target:76, listen:'Make the echo clearly softer, but just as even.'},
+   {id:'sing', title:'A singing melody over a soft left hand', balance:true, R:'C#5:2 E5:2 D5:2 F#5:2 C#5:2 E5:2 B4:2 G#4:2 A4:4', L:LH_ROLL8+' A2:4', start:46, target:70, listen:'Melody clearly louder than the accompaniment.'},
+  ]},
+];
+const MINE = {id:'mine', title:'Your passages',
+  what:'Drills made from bars of your own score. Record a passage once, at a slow tempo with the click, and the coach treats it like any other exercise: wait mode first, then tempo that rises as you get it clean.',
+  why:'This is the \u201cmake your exercises out of the hard spots\u201d idea. Every minute here goes straight into River Flows in You.',
+  how:'Pick 2 to 4 bars, one hand at a time. Record slowly and accurately; the drill can only be as good as the recording.',
+  links:[], drills:[]};
+
+const DRILLS = new Map();
+UNITS.forEach((u,ui) => { u.n = ui+1; u.drills.forEach(d => { d.unit = u.id; d.kind = d.kind || 'seq'; DRILLS.set(d.id, d); }); });
+MINE.n = UNITS.length + 1;
+const CURRICULUM = UNITS.flatMap(u => u.drills.map(d => d.id));
+
+/* ================= storage ================= */
+const STORE_KEY = 'pianoCoach.v2';
+const DEFAULT_GOAL = 'Play River Flows in You (Yiruma), Kyle Landry\u2019s arrangement, musically rather than as correct buttons, and learn to read the score along the way. I\u2019m a beginner, motivated by this piece rather than generic scales and drills.';
+let store = {skills:{}, latency:0, custom:[], history:[], goal:DEFAULT_GOAL, seen:{}};
+try {
+  const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+  if (s && s.skills) store = Object.assign(store, s);
+  else { const old = JSON.parse(localStorage.getItem('pianoCoach.v1') || 'null'); if (old && typeof old.latency === 'number') store.latency = old.latency; }
+} catch(e) {}
+const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch(e) {} };
+let apiKey = '', apiModel = 'claude-sonnet-5-5';
+try { apiKey = localStorage.getItem('pianoCoach.apiKey') || ''; apiModel = localStorage.getItem('pianoCoach.model') || apiModel; } catch(e) {}
+
+function rebuildCustom(){
+  MINE.drills = store.custom.map(c => ({id:'mine:'+c.id, unit:'mine', kind:'seq', custom:c, title:c.name, start:c.recBpm, target:c.goal, bars:c.bars, listen:'Your own passage. Match the timing you recorded, then let the tempo climb.'}));
+  [...DRILLS.keys()].filter(k => k.startsWith('mine:')).forEach(k => DRILLS.delete(k));
+  MINE.drills.forEach(d => DRILLS.set(d.id, d));
+}
+rebuildCustom();
+const unitOf = d => d.unit === 'mine' ? MINE : UNITS.find(u => u.id === d.unit);
+
+function skill(id){
+  if (!store.skills[id]) {
+    const d = DRILLS.get(id);
+    store.skills[id] = {bpm:d.start||60, rt:d.rtStart||3000, best:0, attempts:0, learned:false, passed:false, mastered:false, recent:[]};
+  }
+  return store.skills[id];
+}
+const peek = id => store.skills[id];
+function mastery(id){
+  const s = peek(id), d = DRILLS.get(id); if (!s || !s.passed || !d) return 0;
+  const sp = d.kind === 'quiz' ? clamp((d.rtStart - s.rt)/(d.rtStart - d.rtGoal), 0, 1) : Math.min(1, s.bpm / d.target);
+  return (0.5 + 0.5*sp) * (mean(s.recent)/100 || 0);
+}
+
+/* ================= coach selection ================= */
+const coach = {lastId:null, lastWasNew:false, repeats:0, lastVerdict:null};
+const frontierIndex = () => CURRICULUM.findIndex(id => !(peek(id) && peek(id).passed));
+function unlockedUnitIdx(){ const fi = frontierIndex(); return fi === -1 ? UNITS.length - 1 : UNITS.findIndex(u => u.id === DRILLS.get(CURRICULUM[fi]).unit); }
+function pickAuto(){
+  const c = coach, fi = frontierIndex();
+  if (c.lastId && DRILLS.has(c.lastId) && c.lastVerdict === 'learned') return {id:c.lastId, reason:'You know the notes now. Same exercise, this time with the metronome.', isNew:c.lastWasNew};
+  if (c.lastId && DRILLS.has(c.lastId) && ['down','hold','relearn'].includes(c.lastVerdict) && c.repeats < 2)
+    return {id:c.lastId, reason:'One more go at this one to make it steadier before moving on.', isNew:c.lastWasNew};
+  const pool = CURRICULUM.concat(MINE.drills.map(d => d.id)).filter(id => peek(id) && peek(id).attempts && (peek(id).passed || id.startsWith('mine:')) && id !== c.lastId);
+  const weakest = pool.sort((a,b) => mastery(a) - mastery(b))[0];
+  if (fi === -1) return weakest ? {id:weakest, reason:'Review: this is your weakest skill right now.', isNew:false} : {id:CURRICULUM[0], reason:'', isNew:false};
+  const next = CURRICULUM[fi];
+  if (c.lastWasNew && c.lastVerdict === 'up' && weakest && mastery(weakest) < 0.95)
+    return {id:weakest, reason:`Review: your weakest skill so far. Mixing review in keeps it from fading.`, isNew:false};
+  const s = peek(next);
+  return {id:next, reason: s && s.attempts ? 'Next step on your path. Score 85 or more to unlock the one after.' : 'New exercise. Score 85 or more to unlock the next one.', isNew:true};
+}
+
+/* ================= state ================= */
+const ui = {auto:true, mode:'tempo', metro:true, octave:60, drill:null};
+let take = null, audio = null, master = null, scheduled = [];
+const held = new Map();
+let streak = 0, lastAnalysis = null;
+const GOOD_MS = 45;
+
+/* ================= audio ================= */
+function ensureAudio(){
+  if (!audio) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audio = new AC({latencyHint:'interactive'});
+    master = audio.createGain(); master.gain.value = 0.6; master.connect(audio.destination);
+  }
+  if (audio.state === 'suspended') audio.resume();
+}
+function click(t, accent, loud){
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.type = 'sine'; o.frequency.value = accent ? 1760 : 1175;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(loud ? 0.5 : 0.32, t+0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+0.07);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.09); scheduled.push(o);
+}
+function stopClicks(){ scheduled.forEach(o => { try { o.stop(); } catch(e){} }); scheduled = []; }
+function audioToPerf(t){
+  if (audio.getOutputTimestamp) {
+    const ts = audio.getOutputTimestamp();
+    if (ts && ts.performanceTime > 0) return ts.performanceTime + (t - ts.contextTime)*1000;
+  }
+  return performance.now() + ((audio.outputLatency||0) + (audio.baseLatency||0))*1000 + (t - audio.currentTime)*1000;
+}
+
+/* ================= exercises ================= */
+function buildSeq(d){
+  if (d.custom) {
+    const c = d.custom;
+    const notes = c.notes.map(n => ({...n}));
+    return {notes, totalBeats:c.totalBeats, bars:c.bars};
+  }
+  const notes = [];
+  const ends = [];
+  if (d.R) ends.push(parseTrack(d.R, 'R', notes));
+  if (d.L) ends.push(parseTrack(d.L, 'L', notes));
+  const total = Math.max(...ends);
+  return {notes, totalBeats:total, bars: d.bars || autoBars(total, 4)};
+}
+function buildExercise(d){
+  if (d.kind === 'quiz') return {drill:d, kind:'quiz', notes:[], totalBeats:4, bars:[4]};
+  const s = buildSeq(d);
+  s.notes.sort((a,b) => a.beat - b.beat || a.pitch - b.pitch);
+  ['R','L'].forEach(h => s.notes.filter(n => n.hand === h).forEach((n,i) => n.idx = i));
+  s.notes.forEach(n => n.name = noteName(n.pitch));
+  const hands = new Set(s.notes.map(n => n.hand));
+  return {drill:d, kind:'seq', ...s, hand: hands.size > 1 ? 'B' : [...hands][0]};
+}
+function makeQuizPrompts(d){
+  const out = []; let last = null;
+  for (let i=0; i<d.prompts; i++) {
+    let q;
+    for (let k=0; k<10; k++) {
+      if (d.staffPool) {
+        const nm = d.staffPool[Math.floor(Math.random()*d.staffPool.length)];
+        const base = P(nm), L = nm[0];
+        const sharp = d.keysig === 3 && 'FCG'.includes(L);
+        q = {key:nm, pitch: base + (sharp ? 1 : 0), staff:{clef:d.clef, note:nm, keysig:d.keysig||0}, label: noteName(base + (sharp?1:0))};
+      } else {
+        const pc = d.pool[Math.floor(Math.random()*d.pool.length)];
+        q = {key:String(pc), pc, label: SHARP[pc]};
+      }
+      if (q.key !== last) break;
+    }
+    last = q.key; out.push(q);
+  }
+  return out;
+}
+function newTake(d, mode, bpm, reason){
+  const ex = d.recordSpec ? {drill:d, kind:'record', notes:[], totalBeats:4, bars:[d.recordSpec.bar]} : buildExercise(d);
+  const mspb = 60000 / bpm;
+  const minDur = ex.notes.length ? Math.min(...ex.notes.map(n => n.dur)) : 1;
+  const T = {ex, d, mode, bpm, mspb, reason, state:'ready', startPerf:0, cursorBeat:0, doneAt:null, renderBeat:-1,
+          win: Math.min(0.45*mspb*Math.max(minDur,0.5), 260), extras:0, wrongList:[], played:[], pedalUsed:false,
+          ppb: minDur <= 0.25 ? 150 : minDur <= 0.5 ? 100 : 72,
+          expected: ex.notes.map(n => ({...n, t:0, status:null, dev:null, vel:null, onAt:null, offAt:null, wrongs:0}))};
+  if (mode === 'quiz') T.quiz = {prompts: makeQuizPrompts(d), i:0, at:0, results:[], wrongsNow:0};
+  return T;
+}
+function modeFor(d){ const s = skill(d.id); return d.kind === 'quiz' ? 'quiz' : (s.learned || d.skipWait) ? 'tempo' : 'wait'; }
+function loadDrill(d, mode, bpm, reason){
+  ui.drill = d;
+  take = newTake(d, mode, bpm, reason || '');
+  ui.mode = mode;
+  $('#recPanel').hidden = true;
+  renderLesson();
+  syncControls();
+  renderPath();
+  setChip('', mode === 'quiz' ? 'Press Start or the space bar for the first note' : 'Press Start or the space bar when you\u2019re ready');
+  scrollPianoTo();
+}
+function loadAuto(){
+  const p = pickAuto(), d = DRILLS.get(p.id), s = skill(p.id);
+  coach.repeats = coach.lastId === p.id ? coach.repeats + 1 : 0;
+  coach.lastId = p.id; coach.lastWasNew = p.isNew;
+  const mode = modeFor(d);
+  const reason = p.reason + (mode === 'wait' ? ' First, learn the notes at your own pace.' : '');
+  loadDrill(d, mode, s.bpm, reason);
+}
+function loadManual(keepBpm){
+  const d = DRILLS.get($('#selDrill').value); if (!d) return;
+  const s = skill(d.id);
+  let mode = d.kind === 'quiz' ? 'quiz' : ui.mode === 'quiz' ? modeFor(d) : ui.mode;
+  const bpm = keepBpm ? (Number($('#bpm').value) || s.bpm) : s.bpm;
+  loadDrill(d, mode, bpm, '');
+}
+
+/* ================= running ================= */
+function startTake(){
+  if (!take || take.state === 'running') return;
+  if (take.state === 'done') take = newTake(take.d, take.mode, take.bpm, take.reason);
+  ensureAudio();
+  $('#summary').hidden = true;
+  streak = 0; $('#streak').textContent = '0';
+  const T = take; T.state = 'running';
+  if (T.mode === 'wait') {
+    T.startPerf = performance.now(); T.cursorBeat = T.expected.length ? T.expected[0].beat : 0; T.renderBeat = T.cursorBeat - 1;
+    setChip('', `Find ${groupNames()}`);
+  } else if (T.mode === 'quiz') {
+    T.quiz.at = performance.now(); T.quiz.i = 0;
+    setChip('', quizPromptText());
+  } else {
+    const spb = T.mspb/1000, countIn = T.ex.bars[0] >= 3 ? T.ex.bars[0] : 4;
+    T.a0 = audio.currentTime + 0.15 + countIn*spb;
+    const starts = barStarts(T.ex.bars);
+    if (T.mode === 'record') {
+      for (let b=-countIn; b<0; b++) click(T.a0 + b*spb, b === -countIn, true);
+      T.nextClick = 0;
+    } else {
+      for (let b=-countIn; b<Math.ceil(T.ex.totalBeats); b++) {
+        if (b >= 0 && !ui.metro && T.mode !== 'calib') continue;
+        click(T.a0 + b*spb, b < 0 ? b === -countIn : starts.has(b), b < 0);
+      }
+    }
+    T.startPerf = audioToPerf(T.a0) + (T.mode === 'calib' ? 0 : store.latency);
+    T.expected.forEach(e => e.t = T.startPerf + e.beat*T.mspb);
+    setChip('', T.mode === 'record' ? 'Count-in\u2026 then play your passage. Press Stop when you\u2019re done.' : 'Listen to the count-in\u2026');
+  }
+  syncGo();
+}
+function stopTake(){
+  if (!take || take.state !== 'running') return;
+  if (take.mode === 'record') { finishRecording(); return; }
+  stopClicks();
+  take = newTake(take.d, take.mode, take.bpm, take.reason);
+  setChip('', 'Stopped. Press Start to try again.');
+  $('#countin').classList.remove('show');
+  syncGo();
+}
+function groupNames(){
+  const pend = take.expected.filter(e => e.status === null);
+  if (!pend.length) return '';
+  const b = pend[0].beat;
+  return pend.filter(e => e.beat === b).map(e => e.name).join(' + ');
+}
+function quizPromptText(){
+  const q = take.quiz.prompts[take.quiz.i]; if (!q) return '';
+  return q.staff ? `Play the note shown (${take.quiz.i+1} of ${take.quiz.prompts.length})` : `Find ${q.label}, any octave (${take.quiz.i+1} of ${take.quiz.prompts.length})`;
+}
+
+/* ================= input ================= */
+function noteOn(p, v, t){
+  held.set(p, {t, v});
+  let res = '';
+  if (take && take.state === 'running') {
+    const pl = {pitch:p, vel:v, on:t, off:null, cls:'extra', beat:null, match:null};
+    if (take.mode === 'quiz') res = quizOn(p, t);
+    else {
+      take.played.push(pl);
+      if (take.mode === 'wait') waitOn(pl);
+      else if (take.mode === 'record') { pl.cls = 'rec'; pl.beat = (t - take.startPerf)/take.mspb; }
+      else timedOn(pl);
+      res = pl.cls;
+    }
+  }
+  setKey(p, true, res);
+}
+function noteOff(p, t){
+  held.delete(p); setKey(p, false);
+  if (!take) return;
+  for (let i=take.played.length-1; i>=0; i--) {
+    const pl = take.played[i];
+    if (pl.pitch === p && pl.off === null) { pl.off = t; if (pl.match) pl.match.offAt = t; break; }
+  }
+}
+function pedal(down){ if (take && take.state === 'running' && down) take.pedalUsed = true; }
+
+function timedOn(pl){
+  const T = take, t = pl.on;
+  pl.beat = (t - T.startPerf) / T.mspb;
+  const any = T.mode === 'calib';
+  const cands = T.expected.filter(e => e.status === null && Math.abs(t - e.t) <= T.win);
+  let m = null, best = Infinity;
+  for (const e of cands) if ((any || e.pitch === pl.pitch) && Math.abs(t-e.t) < best) { best = Math.abs(t-e.t); m = e; }
+  if (m) {
+    m.status = 'hit'; m.dev = t - m.t; m.vel = pl.vel; m.onAt = t; pl.match = m;
+    pl.cls = Math.abs(m.dev) <= GOOD_MS ? 'good' : 'off';
+    if (pl.cls === 'good') { bumpStreak(); setChip('good', `${any ? 'Tap' : m.name} on time`); }
+    else { resetStreak(); setChip('warn', `${any ? 'Tap' : m.name} ${m.dev < 0 ? 'early' : 'late'} by ${ms(m.dev)}`); }
+    return;
+  }
+  resetStreak();
+  if (cands.length && !any) {
+    const near = cands.sort((a,b) => Math.abs(t-a.t) - Math.abs(t-b.t))[0];
+    near.wrongs++; pl.cls = 'wrong';
+    T.wrongList.push({played:pl.pitch, expected:near});
+    setChip('bad', `Wrong note: ${noteName(pl.pitch)}, expected ${near.name}`);
+    return;
+  }
+  T.extras++; pl.cls = 'extra';
+  setChip('warn', `Extra note ${noteName(pl.pitch)}`);
+}
+function waitOn(pl){
+  const T = take;
+  const group = T.expected.filter(e => e.beat === T.cursorBeat && e.status === null);
+  pl.beat = T.cursorBeat;
+  const m = group.find(e => e.pitch === pl.pitch);
+  if (m) {
+    m.status = 'hit'; m.vel = pl.vel; m.onAt = pl.on; pl.match = m; pl.cls = 'good';
+    bumpStreak();
+    if (group.length === 1) {
+      const next = T.expected.find(e => e.status === null);
+      if (next) { T.cursorBeat = next.beat; setChip('good', `\u2713 ${m.name}. Next: ${groupNames()}`); }
+      else { T.doneAt = performance.now(); setChip('good', `\u2713 ${m.name}. Done!`); }
+    } else setChip('good', `\u2713 ${m.name}. Now ${group.filter(e=>e!==m).map(e=>e.name).join(' + ')}`);
+  } else {
+    if (group[0]) { group[0].wrongs++; T.wrongList.push({played:pl.pitch, expected:group[0]}); }
+    pl.cls = 'wrong'; resetStreak();
+    setChip('bad', `That was ${noteName(pl.pitch)}. Look for ${groupNames()}`);
+  }
+}
+function quizOn(p, t){
+  const Q = take.quiz, q = Q.prompts[Q.i]; if (!q) return '';
+  const ok = q.pitch != null ? p === q.pitch : ((p%12)+12)%12 === q.pc;
+  if (ok) {
+    const rt = t - Q.at;
+    Q.results.push({q, rt, wrongs:Q.wrongsNow, wrongNotes:Q.wrongNotes||[]});
+    Q.wrongsNow = 0; Q.wrongNotes = [];
+    bumpStreak();
+    setChip('good', `\u2713 ${q.staff ? noteName(p) : q.label} in ${(rt/1000).toFixed(1)} s`);
+    Q.i++; Q.at = t;
+    if (Q.i >= Q.prompts.length) take.doneAt = performance.now();
+    else setTimeout(() => { if (take && take.state === 'running' && take.mode === 'quiz') setChip('', quizPromptText()); }, 550);
+    lastHint = null;
+    return 'good';
+  }
+  Q.wrongsNow++; (Q.wrongNotes = Q.wrongNotes || []).push(p); resetStreak();
+  setChip('bad', `That was ${noteName(p)}${Q.wrongsNow >= 2 ? '. Hint shown on the keyboard.' : '. Try again.'}`);
+  lastHint = null;
+  return 'wrong';
+}
+function bumpStreak(){ streak++; $('#streak').textContent = streak; }
+function resetStreak(){ streak = 0; $('#streak').textContent = '0'; }
+function setChip(cls, text){ const c = $('#chip'); c.className = 'chip' + (cls ? ' ' + cls : ''); c.textContent = text; }
+
+/* ================= frame loop ================= */
+function tick(){
+  const now = performance.now(), T = take;
+  if (T && T.state === 'running') {
+    if (T.mode === 'tempo' || T.mode === 'calib' || T.mode === 'record') {
+      if (T.mode !== 'record') {
+        for (const e of T.expected) if (e.status === null && now > e.t + T.win) {
+          e.status = 'missed'; resetStreak();
+          if (T.mode !== 'calib') setChip('bad', `Missed ${e.name}`);
+        }
+        if (now > T.startPerf + T.ex.totalBeats*T.mspb + 250) finishTake();
+      } else {
+        const spb = T.mspb/1000, starts = T.recStarts || (T.recStarts = barStarts(Array(400).fill(T.ex.bars[0])));
+        while (T.a0 + T.nextClick*spb < audio.currentTime + 0.3) { click(T.a0 + T.nextClick*spb, starts.has(T.nextClick), false); T.nextClick++; }
+      }
+      const ci = $('#countin');
+      if (now < T.startPerf) { ci.textContent = Math.ceil((T.startPerf - now)/T.mspb); ci.classList.add('show'); }
+      else ci.classList.remove('show');
+    } else if (T.doneAt && now > T.doneAt + 500) finishTake();
+  }
+  drawRoll(now);
+  updateHints();
+  requestAnimationFrame(tick);
+}
+
+/* ================= finish ================= */
+function finishTake(){
+  const T = take; T.state = 'done'; stopClicks();
+  $('#countin').classList.remove('show');
+  syncGo();
+  if (T.mode === 'calib') {
+    const devs = T.expected.filter(e => e.status === 'hit').map(e => e.dev);
+    if (devs.length >= 6) {
+      store.latency = Math.round(median(devs.slice(-8))); save();
+      $('#latVal').textContent = `${store.latency} ms`;
+      setChip('good', `Calibrated: your taps land ${ms(store.latency)} ${store.latency >= 0 ? 'after' : 'before'} the click.`);
+    } else setChip('bad', 'Too few taps were caught. Calibrate again and tap on every click.');
+    const d = ui.prevDrill || DRILLS.get(CURRICULUM[0]);
+    loadDrill(d, modeFor(d), skill(d.id).bpm, '');
+    return;
+  }
+  const A = T.mode === 'quiz' ? analyzeQuiz(T) : analyze(T);
+  const D = adapt(T, A);
+  lastAnalysis = {drill:T.d.id, mode:T.mode, bpm:T.bpm, A, D, at:new Date().toISOString()};
+  store.history.push({d:T.d.id, at:lastAnalysis.at, mode:T.mode, bpm:T.mode==='tempo'?T.bpm:null, score:A.score, verdict:D.verdict, notes:A.insights.filter(i=>i[0]!=='good').slice(0,3).map(i=>i[1])});
+  store.history = store.history.slice(-60); save();
+  renderSummary(T, A, D);
+  renderPath();
+  setChip(A.score >= 85 ? 'good' : A.score >= 65 ? 'warn' : 'bad', `Score ${A.score}. Details below.`);
+}
+
+function analyzeQuiz(T){
+  const d = T.d, R = T.quiz.results, n = T.quiz.prompts.length;
+  const clean = R.filter(r => r.wrongs === 0).length;
+  const acc = n ? (clean + 0.5*(R.length - clean)) / n : 0;
+  const rts = R.map(r => r.rt), med = median(rts);
+  const speed = clamp((d.rtStart - med)/(d.rtStart - d.rtGoal), 0, 1);
+  const score = Math.round(100*(0.7*acc + 0.3*speed));
+  const ins = [];
+  if (clean === n) ins.push(['good', 'No wrong keys at all.']);
+  const conf = new Map();
+  R.forEach(r => r.wrongNotes.forEach(w => { const k = `${r.q.label}|${d.staffPool ? noteName(w) : letter(w)}`; conf.set(k, (conf.get(k)||0)+1); }));
+  const top = [...conf].sort((a,b) => b[1]-a[1]).slice(0,3);
+  if (top.length) ins.push(['bad', `Mix-ups: ${top.map(([k,c]) => { const [a,b] = k.split('|'); return `${a} played as ${b}${c>1?` (${c}\u00d7)`:''}`; }).join('; ')}.`]);
+  if (d.staffPool && R.some(r => r.wrongNotes.some(w => Math.abs(w - r.q.pitch) === 12)))
+    ins.push(['warn', 'Some answers were the right letter in the wrong octave. On the staff, octave matters: check where middle C is.']);
+  if (d.keysig && R.some(r => r.wrongNotes.some(w => w === r.q.pitch - 1)))
+    ins.push(['warn', 'You played a white key where the key signature makes it sharp. F, C and G are always sharp in this key.']);
+  ins.push([med <= d.rtGoal ? 'good' : med <= skill(d.id).rt ? 'good' : 'warn', `Typical response time: ${(med/1000).toFixed(1)} s (goal ${(skill(d.id).rt/1000).toFixed(1)} s).`]);
+  const slow = R.reduce((w,r) => !w || r.rt > w.rt ? r : w, null);
+  if (slow && R.length > 3 && slow.rt > med*1.8) ins.push(['warn', `Slowest: ${slow.q.staff ? slow.q.staff.note.replace(/\d/,'') + ' on the staff' : slow.q.label} took ${(slow.rt/1000).toFixed(1)} s. Give that one extra attention.`]);
+  return {score, acc, med, n, hits:R.length, clean, insights:ins, quiz:true};
+}
+
+function analyze(T){
+  const E = T.expected, n = E.length, timed = T.mode === 'tempo', d = T.d;
+  const hits = E.filter(e => e.status === 'hit');
+  const clean = hits.filter(e => e.wrongs === 0);
+  const missed = E.filter(e => e.status === 'missed');
+  const acc = n ? clamp((clean.length + 0.5*(hits.length - clean.length) - 0.5*T.extras) / n, 0, 1) : 0;
+  const devs = timed ? hits.map(e => e.dev) : [];
+  const m = mean(devs), sd = stdev(devs), mad = mean(devs.map(Math.abs));
+  const vels = hits.map(e => e.vel), vm = mean(vels), vsd = stdev(vels), vcv = vm ? vsd/vm : 0;
+  const ins = [];
+
+  // notes
+  if (!T.wrongList.length && !missed.length && !T.extras) ins.push(['good','Every note was right.']);
+  if (T.wrongList.length) {
+    const byExp = new Map();
+    T.wrongList.forEach(w => { const k = w.expected.name; if (!byExp.has(k)) byExp.set(k, new Set()); byExp.get(k).add(noteName(w.played)); });
+    ins.push(['bad', `Wrong notes at ${[...byExp].slice(0,3).map(([k,s]) => `${k} (you played ${[...s].join(', ')})`).join('; ')}.`]);
+    const sig = T.wrongList.find(w => [6,1,8].includes(w.expected.pitch%12) && w.played === w.expected.pitch - 1);
+    if (sig) ins.push(['warn', `${sig.expected.name} is a black key: in A major F, C and G are always sharp. Say it out loud before you start.`]);
+  }
+  if (missed.length) ins.push(['bad', `Missed ${missed.length} note${missed.length>1?'s':''}: ${missed.slice(0,4).map(e=>e.name).join(', ')}${missed.length>4?'\u2026':''}.`]);
+  if (T.extras >= 2) ins.push(['warn', `${T.extras} extra notes. Brushing neighbouring keys often means a flat hand; curve your fingers a little more.`]);
+
+  // timing
+  if (timed && hits.length >= 4) {
+    if (m > 25) ins.push(['warn', `You\u2019re dragging: on average ${ms(m)} behind the click. Aim to land with it, not after it.`]);
+    else if (m < -25) ins.push(['warn', `You\u2019re rushing: on average ${ms(m)} ahead of the click. Let each note wait for its beat.`]);
+    else ins.push(['good', `Well centred on the beat (average ${Math.round(m)} ms).`]);
+    if (sd < 30) ins.push(['good', `Very steady rhythm (spread \u00b1${Math.round(sd)} ms).`]);
+    else if (sd < 60) ins.push(['warn', `Fairly steady (spread \u00b1${Math.round(sd)} ms). Under \u00b130 ms is the next goal.`]);
+    else ins.push(['bad', `Uneven rhythm (spread \u00b1${Math.round(sd)} ms). Slow down and count out loud.`]);
+    if (d.cross) for (const h of ['R','L']) {
+      const cx = d.cross[h]; if (!cx) continue;
+      const hh = hits.filter(e => e.hand === h);
+      const cross = hh.filter(e => cx.includes(e.idx)).map(e => Math.abs(e.dev));
+      const rest = hh.filter(e => !cx.includes(e.idx)).map(e => Math.abs(e.dev));
+      if (cross.length && rest.length && mean(cross) > mean(rest) + 25)
+        ins.push(['warn', `Timing slips at the thumb crossings: ${ms(mean(cross))} off there vs ${ms(mean(rest))} elsewhere. Loop just those two notes slowly until the move is smooth.`]);
+    }
+    const worst = hits.reduce((w,e) => !w || Math.abs(e.dev) > Math.abs(w.dev) ? e : w, null);
+    if (worst && Math.abs(worst.dev) > Math.max(70, 2*sd))
+      ins.push(['warn', `Biggest slip: ${worst.name} at beat ${+(worst.beat+1).toFixed(2)} came ${ms(worst.dev)} ${worst.dev<0?'early':'late'}.`]);
+    if (T.ex.hand === 'B') {
+      const lags = [];
+      const beats = [...new Set(hits.map(e => e.beat))];
+      beats.forEach(b => {
+        const r = hits.filter(e => e.beat === b && e.hand === 'R'), l = hits.filter(e => e.beat === b && e.hand === 'L');
+        if (r.length && l.length) lags.push(mean(l.map(e=>e.onAt)) - mean(r.map(e=>e.onAt)));
+      });
+      const lag = mean(lags);
+      if (lags.length >= 3 && Math.abs(lag) > 20) ins.push(['warn', `Your left hand lands ${ms(lag)} ${lag>0?'after':'before'} the right. Aim for both hands to strike together.`]);
+      else if (lags.length >= 3) ins.push(['good', 'Both hands land together.']);
+    }
+  }
+  // chord togetherness
+  const spreads = [];
+  const groups = new Map();
+  hits.forEach(e => { const k = e.hand + '|' + e.beat; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e.onAt); });
+  groups.forEach(g => { if (g.length >= 2) spreads.push(Math.max(...g) - Math.min(...g)); });
+  if (spreads.length >= 3) {
+    const sp = mean(spreads);
+    if (sp > 40) ins.push(['warn', `Chord notes arrive unevenly (about ${ms(sp)} apart). Drop the whole hand at once from a loose wrist.`]);
+    else ins.push(['good', 'Chord notes land together.']);
+  }
+  // dynamics
+  let shapeScore = null;
+  if (d.dyn) {
+    const rs = E.filter(e => e.hand === 'R').sort((a,b) => a.beat - b.beat);
+    const pairs = rs.map((e,i) => [e.vel, d.dyn[i]]).filter(p => p[0] != null && p[1] != null);
+    const vs = pairs.map(p => p[0]), ts = pairs.map(p => p[1]);
+    const range = vs.length ? Math.max(...vs) - Math.min(...vs) : 0;
+    const r = corr(vs, ts);
+    shapeScore = clamp(r, 0, 1) * clamp(range/40, 0, 1);
+    if (range < 15) ins.push(['bad', `Volume barely changed (range ${range} of 127). Exaggerate the shape far more than feels natural.`]);
+    else if (r > 0.75) ins.push(['good', `Your loudness followed the shape well (match ${Math.round(r*100)}%, range ${range}).`]);
+    else ins.push(['warn', `The loudness didn\u2019t follow the shape closely (match ${Math.round(r*100)}%). Compare your bars with the dashed target line.`]);
+  } else if (vels.length >= 4) {
+    if (vcv < 0.1) ins.push(['good', 'Even touch: every note at a similar volume.']);
+    else {
+      ins.push([vcv < 0.2 ? 'warn' : 'bad', `Volume varies by about \u00b1${Math.round(vcv*100)}% from note to note. Aim for an even line.`]);
+      const soft = hits.reduce((w,e) => !w || e.vel < w.vel ? e : w, null);
+      if (soft && soft.vel < vm - Math.max(12, 1.5*vsd)) ins.push(['warn', `${soft.name} (beat ${+(soft.beat+1).toFixed(2)}) was much softer than the rest, often a weaker finger (4 or 5). Give it a little extra weight.`]);
+    }
+  }
+  if (d.balance) {
+    const r = hits.filter(e => e.hand === 'R').map(e => e.vel), l = hits.filter(e => e.hand === 'L').map(e => e.vel);
+    if (r.length && l.length) {
+      const diff = mean(r) - mean(l);
+      if (diff >= 8) ins.push(['good', `Good balance: the melody is louder than the left hand (by ${Math.round(diff)}).`]);
+      else ins.push(['warn', `The left hand is ${diff < 0 ? 'louder than' : 'as loud as'} the melody. Let the right hand sing and the left whisper.`]);
+    }
+  }
+  // lengths and articulation
+  if (T.pedalUsed) ins.push(['warn', 'The sustain pedal was down, so note lengths and legato weren\u2019t checked.']);
+  else {
+    const longs = hits.filter(e => e.dur >= 1.5 && e.offAt != null && e.onAt != null);
+    if (longs.length >= 2 && timed) {
+      const ratio = mean(longs.map(e => (e.offAt - e.onAt)/T.mspb/e.dur));
+      if (ratio < 0.75) ins.push(['warn', `Long notes were released early (held about ${Math.round(ratio*100)}% of their value). Keep counting while you hold.`]);
+      else ins.push(['good', 'Long notes held for their full value.']);
+    }
+    const intoRest = timed ? hits.filter(e => e.offAt != null && E.every(o => o === e || o.hand !== e.hand || Math.abs(o.beat - (e.beat + e.dur)) > 1e-6) && E.some(o => o.hand === e.hand && o.beat > e.beat + e.dur + 0.2) && (e.offAt - e.onAt)/T.mspb > e.dur + 0.4) : [];
+    if (intoRest.length) ins.push(['warn', `Held into a rest at ${intoRest.slice(0,3).map(e=>e.name).join(', ')}. Lift on the rest so the phrase can breathe.`]);
+    const gaps = [];
+    ['R','L'].forEach(h => {
+      const seq = E.filter(e => e.hand === h).sort((a,b) => a.beat - b.beat);
+      for (let i=0; i<seq.length-1; i++) {
+        const a = seq[i], b = seq[i+1];
+        if (seq.filter(x => x.beat === a.beat).length > 1 || seq.filter(x => x.beat === b.beat).length > 1) continue;
+        if (Math.abs(b.beat - (a.beat + a.dur)) > 1e-6) continue;
+        if (a.status === 'hit' && b.status === 'hit' && a.offAt != null && b.onAt != null) gaps.push(b.onAt - a.offAt);
+      }
+    });
+    if (gaps.length >= 3) {
+      const g = mean(gaps);
+      if (g > 40) ins.push(['warn', `Small silences between notes (about ${ms(g)}). For legato, release each key just as the next goes down.`]);
+      else if (g < -70) ins.push(['warn', `Notes overlap by about ${ms(g)}, which blurs the line. Lift each finger as the next one plays.`]);
+      else ins.push(['good', 'Nicely connected legato.']);
+    }
+  }
+  const timingScore = timed ? clamp(1 - (mad - 20)/130, 0, 1) : null;
+  const evenScore = shapeScore != null ? shapeScore : vels.length > 2 ? clamp(1 - (vcv - 0.08)/0.27, 0, 1) : 1;
+  const wE = d.dyn ? 0.25 : 0.1;
+  const score = Math.round(100 * (timed ? acc*(0.7-wE) + timingScore*0.3 + evenScore*wE : acc*0.85 + evenScore*0.15));
+  return {score, acc, hits:hits.length, n, missed:missed.length, wrongs:T.wrongList.length, extras:T.extras, mean:m, sd, vcv, timed, insights:ins};
+}
+
+function adapt(T, A){
+  const d = T.d, id = d.id, s = skill(id);
+  s.attempts++;
+  let verdict, msg;
+  if (T.mode === 'quiz') {
+    s.recent = [...s.recent, A.score].slice(-6); s.best = Math.max(s.best, A.score);
+    if (A.acc >= 0.9 && A.med <= s.rt) {
+      const old = s.rt; s.rt = Math.max(d.rtGoal, Math.round(s.rt*0.85)); verdict = 'up';
+      msg = `Accurate and quick. Your time goal tightens from ${(old/1000).toFixed(1)} s to ${(s.rt/1000).toFixed(1)} s.`;
+      if (!s.passed) { s.passed = true; msg += ' Passed! The next exercise is unlocked.'; }
+      if (A.med <= d.rtGoal && !s.mastered) { s.mastered = true; msg += ' Mastered.'; }
+    } else if (A.acc < 0.75) { verdict = 'down'; msg = 'Several mix-ups. Slow down: accuracy first, speed comes by itself.'; }
+    else { verdict = 'hold'; msg = A.acc < 0.9 ? 'Close. Aim for fewer mix-ups next round.' : `Accurate, now aim to answer within ${(s.rt/1000).toFixed(1)} s.`; }
+  } else if (T.mode === 'wait') {
+    if (A.acc >= 0.9) { s.learned = true; verdict = 'learned'; msg = `You know the notes. Next, play it with the metronome at ${s.bpm} BPM.`; }
+    else { verdict = 'relearn'; msg = 'Go through the notes once more at your own pace; aim for no wrong notes.'; }
+  } else {
+    s.recent = [...s.recent, A.score].slice(-6); s.best = Math.max(s.best, A.score);
+    const steady = A.sd <= 40 && Math.abs(A.mean) <= 35;
+    if (A.acc >= 0.95 && steady) {
+      s.bpm = Math.min(200, Math.round(T.bpm * 1.07)); verdict = 'up';
+      msg = `Clean and steady. Tempo goes up from ${T.bpm} to ${s.bpm} BPM next time.`;
+    } else if (A.acc < 0.8 || A.sd > 80) {
+      s.bpm = Math.max(30, Math.round(T.bpm * 0.92)); verdict = 'down';
+      msg = `That was a stretch at ${T.bpm} BPM. Next time it slows to ${s.bpm} BPM so you can play it cleanly.`;
+      if (A.acc < 0.6 && !d.skipWait) { s.learned = false; msg += ' The notes need more work, so it starts in wait-for-me mode.'; }
+    } else {
+      s.bpm = T.bpm; verdict = 'hold';
+      msg = `Almost there. Stay at ${T.bpm} BPM and focus on ${A.acc < 0.95 ? 'getting every note right' : 'keeping the rhythm steady'}.`;
+    }
+    if (A.score >= 85 && !s.passed) { s.passed = true; msg += ' Passed! The next exercise is unlocked.'; }
+    if (A.score >= 85 && T.bpm >= d.target && !s.mastered) { s.mastered = true; msg += ` Mastered at the target tempo of ${d.target} BPM.`; }
+  }
+  save();
+  coach.lastVerdict = verdict;
+  return {verdict, msg};
+}
+
+/* ================= recording passages ================= */
+function startRecordSetup(){
+  if (take && take.state === 'running') stopTake();
+  ui.prevDrill = ui.drill;
+  const spec = {bar: Number($('#recBar').value) || 4};
+  const d = {id:'record', unit:'mine', kind:'record', title:'Record a passage', recordSpec:spec, listen:'Set the options, press Start, wait for the count-in, play, then press Stop.'};
+  ui.drill = d;
+  take = newTake(d, 'record', Number($('#recBpm').value) || 50, '');
+  renderLesson(); syncControls(); renderPath(); fitView();
+  $('#recPanel').hidden = false;
+  setChip('', 'Choose the options above, then press Start to record');
+}
+function finishRecording(){
+  const T = take; stopClicks(); $('#countin').classList.remove('show');
+  const grid = Number($('#recGrid').value) || 0.25, split = Number($('#recSplit').value) || 60;
+  const now = performance.now();
+  const ps = T.played.filter(p => p.on >= T.startPerf - T.mspb*0.5);
+  T.state = 'ready'; T.played = [];
+  if (ps.length < 2) { setChip('bad', 'Nothing usable was recorded. Press Start and play after the count-in.'); syncGo(); return; }
+  let notes = ps.map(p => {
+    const b = (p.on - T.startPerf)/T.mspb;
+    const len = ((p.off != null ? p.off : now) - p.on)/T.mspb;
+    return {pitch:p.pitch, beat:Math.round(b/grid)*grid, dur:Math.max(grid, Math.round(len/grid)*grid), hand:p.pitch < split ? 'L' : 'R'};
+  });
+  const bar = Number($('#recBar').value) || 4;
+  const shift = Math.floor(Math.min(...notes.map(n => n.beat)) / bar) * bar;
+  notes.forEach(n => n.beat = +(n.beat - shift).toFixed(4));
+  const seen = new Set(); notes = notes.filter(n => { const k = n.pitch+'|'+n.beat; if (seen.has(k)) return false; seen.add(k); return true; });
+  const end = Math.max(...notes.map(n => n.beat + n.dur));
+  const total = Math.ceil(end / bar) * bar;
+  const c = {id: Date.now().toString(36), name: ($('#recName').value.trim() || `Passage ${store.custom.length + 1}`), notes, totalBeats: total,
+             bars: Array(total/bar).fill(bar), grid, recBpm: T.bpm, goal: Number($('#recGoal').value) || 70, created: new Date().toISOString()};
+  store.custom.push(c); save(); rebuildCustom(); fillUnitSelect();
+  const d = DRILLS.get('mine:' + c.id);
+  ui.auto = false;
+  loadDrill(d, 'wait', c.recBpm, `Saved \u201c${c.name}\u201d with ${notes.length} notes. Check it looks right, then learn it in wait mode.`);
+  setChip('good', 'Recorded. The falling notes show what was captured.');
+  syncGo();
+}
+function deleteCustom(id){
+  const c = store.custom.find(x => 'mine:' + x.id === id); if (!c) return;
+  if (!confirm(`Delete \u201c${c.name}\u201d? Its progress will be removed too.`)) return;
+  store.custom = store.custom.filter(x => x !== c); delete store.skills[id]; save(); rebuildCustom(); fillUnitSelect();
+  if (ui.auto) loadAuto(); else { const d = DRILLS.get(CURRICULUM[0]); loadDrill(d, modeFor(d), skill(d.id).bpm, ''); }
+}
+
+/* ================= summary ================= */
+let lastSum = null;
+function renderSummary(T, A, D){
+  $('#summary').hidden = false;
+  $('#sumScore').innerHTML = `${A.score}<small> / 100</small>`;
+  $('#sumVerdict').textContent = D.msg;
+  let stats;
+  if (A.quiz) stats = [[`${A.clean} / ${A.n}`, 'Right on the first try'], [`${(A.med/1000).toFixed(1)} s`, 'Typical response time']];
+  else {
+    stats = [[`${A.hits} / ${A.n}`, 'Notes played right'], [String(A.wrongs), 'Wrong notes']];
+    if (A.timed) {
+      stats.push([`${A.mean >= 0 ? '+' : '\u2212'}${Math.round(Math.abs(A.mean))} ms`, A.mean >= 0 ? 'Average: behind the beat' : 'Average: ahead of the beat']);
+      stats.push([`\u00b1${Math.round(A.sd)} ms`, 'Rhythm steadiness']);
+    }
+    stats.push([`\u00b1${Math.round(A.vcv*100)}%`, 'Volume variation']);
+  }
+  $('#sumStats').innerHTML = stats.map(([v,k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
+  $('#sumInsights').innerHTML = A.insights.map(([c,tx]) => `<li class="${c}">${esc(tx)}</li>`).join('');
+  $('#chTimingBox').style.display = (A.timed || A.quiz) ? '' : 'none';
+  $('#chVelBox').style.display = A.quiz ? 'none' : '';
+  $('#chTimingTitle').textContent = A.quiz ? 'Response time per note (seconds)' : 'Timing per note (above the line is late)';
+  $('#chVelTitle').textContent = T.d.dyn ? 'Loudness per note (dashed line is the target shape)' : 'Loudness per note';
+  $('#btnNext').hidden = !ui.auto;
+  lastSum = {T, A};
+  requestAnimationFrame(redrawCharts);
+  $('#summary').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'nearest'});
+}
+function redrawCharts(){
+  if (!lastSum || $('#summary').hidden) return;
+  const {T, A} = lastSum;
+  if (A.quiz) drawRtChart(T); else { if (A.timed) drawTimingChart(T); drawVelChart(T); }
+}
+window.addEventListener('resize', () => requestAnimationFrame(redrawCharts));
+
+/* ================= colors & canvas ================= */
+let C = {}, FONT = 'sans-serif';
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['accent','good','warn','bad','muted','ink','roll','roll-dark-row','grid','grid-strong','surface','line'].forEach(k => C[k] = cs.getPropertyValue('--'+k).trim());
+  FONT = getComputedStyle(document.body).fontFamily;
+}
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); redrawCharts(); });
+document.fonts && document.fonts.ready.then(readColors);
+
+function prepCanvas(cv){
+  const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  const w = Math.max(1, Math.round(r.width*dpr)), h = Math.max(1, Math.round(r.height*dpr));
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, w:r.width, h:r.height};
+}
+function rrect(ctx, x, y, w, h, r){ r = Math.max(0, Math.min(r, w/2, h/2)); ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); }
+
+/* ================= keyboard geometry ================= */
+const KB_LO = 21, KB_HI = 108;
+let VLO = KB_LO, VHI = KB_HI, WHITES = [], WIDX = new Map();
+function setRange(lo, hi){
+  lo = Math.max(KB_LO, lo); hi = Math.min(KB_HI, hi);
+  if (lo === VLO && hi === VHI && WHITES.length) return;
+  VLO = lo; VHI = hi;
+  WHITES = []; for (let p=lo; p<=hi; p++) if (!isBlack(p)) WHITES.push(p);
+  WIDX = new Map(WHITES.map((p,i) => [p,i]));
+  keyEls.forEach((el,p) => { if (held.has(p)) setKey(p, false); });
+  buildKeyboard(); lastHint = null;
+}
+function rangePitches(){
+  const T = take; if (!T) return [60];
+  if (T.mode === 'quiz') {
+    const d = T.d;
+    if (d.staffPool) return d.staffPool.map(n => P(n) + (d.keysig === 3 && 'FCG'.includes(n[0]) ? 1 : 0));
+    return [48, 83];
+  }
+  if (T.mode === 'record') return [36, 83];
+  if (T.mode === 'calib') return [60, 71];
+  return T.expected.length ? T.expected.map(e => e.pitch) : [60];
+}
+function fitView(){
+  const mode = $('#selView').value;
+  if (mode === 'all') { setRange(KB_LO, KB_HI); return; }
+  const ps = rangePitches(), need = mode === 'wide' ? 48 : 24;
+  let lo = 12*Math.floor(Math.min(...ps)/12), hi = 12*Math.ceil((Math.max(...ps)+1)/12) - 1;
+  let up = true;
+  while (hi - lo + 1 < need) { if (up && hi + 12 <= KB_HI) hi += 12; else if (lo - 12 >= KB_LO - 9) lo -= 12; else hi += 12; up = !up; }
+  if (lo < KB_LO) lo = KB_LO;
+  if (hi > KB_HI) hi = KB_HI;
+  setRange(lo, hi);
+}
+function keyGeom(p, W){
+  if (p < VLO || p > VHI) return null;
+  const ww = W / WHITES.length;
+  if (!isBlack(p)) return {x: WIDX.get(p)*ww, w: ww, black:false};
+  const bw = ww*0.62; return {x: (WIDX.get(p-1)+1)*ww - bw/2, w: bw, black:true};
+}
+
+/* ================= falling-note roll ================= */
+function drawRoll(now){
+  const {ctx, w, h} = prepCanvas($('#roll'));
+  ctx.fillStyle = C.roll; ctx.fillRect(0,0,w,h);
+  if (take && take.mode === 'quiz') { drawQuiz(ctx, w, h); return; }
+  for (let p=VLO; p<=VHI; p++) if (isBlack(p)) { const g = keyGeom(p,w); ctx.fillStyle = C['roll-dark-row']; ctx.fillRect(g.x, 0, g.w, h); }
+  ctx.lineWidth = 1;
+  WHITES.forEach(p => { const pc = p%12; if (pc === 0 || pc === 5) { const x = Math.round(keyGeom(p,w).x)+.5; ctx.strokeStyle = pc === 0 ? C['grid-strong'] : C.grid; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); } });
+  const T = take; if (!T) return;
+
+  const running = T.state === 'running';
+  let Y, hitY = null, fromB, toB;
+  const beatOf = t => (t - T.startPerf) / T.mspb;
+  if (running) {
+    let rb;
+    if (T.mode === 'wait') { T.renderBeat += (T.cursorBeat - T.renderBeat) * 0.18; rb = T.renderBeat; }
+    else rb = beatOf(now);
+    hitY = h - 3;
+    Y = b => hitY - (b - rb) * T.ppb;
+    fromB = rb - 1; toB = rb + hitY/T.ppb + 1;
+  } else {
+    const tb = Math.max(T.ex.totalBeats, 4), ppb = (h - 16) / (tb + 0.2);
+    Y = b => h - 8 - b * ppb; fromB = 0; toB = tb;
+  }
+  // beat and bar lines
+  const starts = T.mode === 'record' ? barStarts(Array(400).fill(T.ex.bars[0])) : barStarts(T.ex.bars);
+  for (let b = Math.ceil(fromB); b <= Math.floor(toB); b++) {
+    if (b < 0) continue;
+    const y = Math.round(Y(b)) + .5; if (y < 0 || y > h) continue;
+    const isBar = starts.has(b);
+    ctx.strokeStyle = isBar ? C['grid-strong'] : C.grid; ctx.globalAlpha = isBar ? 1 : 0.7;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  // expected notes
+  ctx.font = `700 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  for (const e of T.expected) {
+    const y1 = Y(e.beat) - 1, y0 = Y(e.beat + e.dur) + 1;
+    if (y1 < 0 || y0 > h) continue;
+    const g = keyGeom(e.pitch, w); if (!g) continue;
+    rrect(ctx, g.x + 1, y0, g.w - 2, y1 - y0, 3);
+    let stroke = e.hand === 'L' ? C.muted : C.accent, fill = null, dash = [];
+    if (e.status === 'hit') { const c = e.wrongs ? C.warn : C.good; stroke = c; fill = c; }
+    else if (e.status === 'missed') { stroke = C.bad; dash = [4,3]; }
+    if (fill) { ctx.globalAlpha = 0.25; ctx.fillStyle = fill; ctx.fill(); ctx.globalAlpha = 1; }
+    else { ctx.globalAlpha = e.hand === 'L' ? 0.14 : 0.18; ctx.fillStyle = stroke; ctx.fill(); ctx.globalAlpha = 1; }
+    ctx.setLineDash(dash); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke(); ctx.setLineDash([]);
+    if (T.mode !== 'calib' && g.w >= 12 && y1 - y0 >= 14) { ctx.fillStyle = C.ink; ctx.fillText(letter(e.pitch), g.x + g.w/2, y1 - 2); }
+  }
+  // played notes
+  for (const pl of T.played) {
+    const b0 = pl.beat;
+    let b1;
+    if (T.mode === 'wait') b1 = b0 + (pl.match ? pl.match.dur * 0.8 : 0.35);
+    else b1 = pl.off != null ? beatOf(pl.off) : (running ? beatOf(now) : b0 + 0.25);
+    const y1 = Y(b0), y0 = Math.min(Y(b1), y1 - 4);
+    if (y1 < 0 || y0 > h) continue;
+    const g = keyGeom(pl.pitch, w); if (!g) continue;
+    const bw = Math.max(4, g.w*0.45);
+    ctx.fillStyle = pl.cls === 'good' ? C.good : pl.cls === 'off' ? C.warn : pl.cls === 'wrong' ? C.bad : pl.cls === 'rec' ? C.accent : C.muted;
+    rrect(ctx, g.x + (g.w - bw)/2, y0, bw, y1 - y0, bw/2); ctx.fill();
+  }
+  if (hitY !== null) { ctx.strokeStyle = C.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, hitY); ctx.lineTo(w, hitY); ctx.stroke(); }
+}
+
+function drawQuiz(ctx, w, h){
+  const Q = take.quiz, q = Q.prompts[Math.min(Q.i, Q.prompts.length-1)];
+  const done = take.state === 'done', running = take.state === 'running';
+  // progress dots
+  const n = Q.prompts.length, dw = Math.min(18, (w - 40)/n);
+  for (let i=0; i<n; i++) {
+    const r = Q.results[i];
+    ctx.beginPath(); ctx.arc(w/2 - (n-1)*dw/2 + i*dw, 18, 5, 0, Math.PI*2);
+    ctx.fillStyle = r ? (r.wrongs ? C.warn : C.good) : i === Q.i && running ? C.accent : C['grid-strong']; ctx.fill();
+  }
+  if (!running && !done) { ctx.fillStyle = C.muted; ctx.font = `500 22px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Press Start for the first note', w/2, h/2); return; }
+  if (done) { ctx.fillStyle = C.muted; ctx.font = `500 22px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Round complete', w/2, h/2); return; }
+  if (q.staff) drawStaff(ctx, w, h, q.staff);
+  else {
+    ctx.fillStyle = C.ink; ctx.font = `700 ${Math.min(120, h*0.42)}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(q.label, w/2, h/2 + 8);
+    ctx.fillStyle = C.muted; ctx.font = `400 15px ${FONT}`; ctx.fillText('any octave', w/2, h/2 + Math.min(70, h*0.25));
+  }
+}
+function drawStaff(ctx, w, h, st){
+  const sp = Math.min(18, h/13), sw = Math.min(460, w*0.7), x0 = (w - sw)/2, mid = h/2 + 10;
+  const bottom = mid + 2*sp;
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.3;
+  for (let i=0; i<5; i++) { const y = bottom - i*sp; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0+sw, y); ctx.stroke(); }
+  ctx.fillStyle = C.muted; ctx.font = `400 13px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText(st.clef === 'treble' ? 'Treble clef (right hand)' : 'Bass clef (left hand)', x0, bottom - 6.2*sp);
+  const ref = st.clef === 'treble' ? 30 : 18;  // diatonic index of bottom line: E4 / G2
+  const dia = nm => (+nm.slice(-1))*7 + 'CDEFGAB'.indexOf(nm[0]);
+  const yOf = pos => bottom - pos*sp/2;
+  let xs = x0 + 18;
+  if (st.keysig === 3) {
+    const sh = st.clef === 'treble' ? ['F5','C5','G5'] : ['F3','C3','G3'];
+    ctx.fillStyle = C.ink; ctx.font = `700 ${sp*1.7}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    sh.forEach((nm,i) => ctx.fillText('\u266f', xs + i*sp*0.95, yOf(dia(nm) - ref)));
+    xs += 3*sp + 8;
+  }
+  const pos = dia(st.note) - ref, x = x0 + sw*0.62, y = yOf(pos);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 1.3;
+  for (let lp = -2; lp >= pos; lp -= 2) { ctx.beginPath(); ctx.moveTo(x - sp*1.1, yOf(lp)); ctx.lineTo(x + sp*1.1, yOf(lp)); ctx.stroke(); }
+  for (let lp = 10; lp <= pos; lp += 2) { ctx.beginPath(); ctx.moveTo(x - sp*1.1, yOf(lp)); ctx.lineTo(x + sp*1.1, yOf(lp)); ctx.stroke(); }
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.35); ctx.beginPath(); ctx.ellipse(0, 0, sp*0.68, sp*0.48, 0, 0, Math.PI*2); ctx.fillStyle = C.ink; ctx.fill(); ctx.restore();
+  ctx.beginPath(); if (pos < 4) { ctx.moveTo(x + sp*0.62, y); ctx.lineTo(x + sp*0.62, y - sp*3.4); } else { ctx.moveTo(x - sp*0.62, y); ctx.lineTo(x - sp*0.62, y + sp*3.4); } ctx.stroke();
+}
+
+/* ================= summary charts ================= */
+function drawTimingChart(T){
+  const {ctx, w, h} = prepCanvas($('#chTiming')); ctx.clearRect(0,0,w,h);
+  const all = [...T.expected].sort((a,b) => a.beat - b.beat || a.pitch - b.pitch);
+  const lim = 150, mid = h/2, n = all.length, bw = (w - 16) / Math.max(n,1);
+  ctx.fillStyle = C.good; ctx.globalAlpha = 0.12; ctx.fillRect(0, mid - GOOD_MS/lim*(h/2-6), w, 2*GOOD_MS/lim*(h/2-6)); ctx.globalAlpha = 1;
+  ctx.strokeStyle = C['grid-strong']; ctx.beginPath(); ctx.moveTo(0, mid+.5); ctx.lineTo(w, mid+.5); ctx.stroke();
+  all.forEach((e,i) => {
+    const x = 8 + i*bw + bw*0.15, bwi = Math.max(1.5, bw*0.7);
+    ctx.globalAlpha = e.hand === 'L' && T.ex.hand === 'B' ? 0.55 : 1;
+    if (e.status !== 'hit') { ctx.fillStyle = C.bad; ctx.fillRect(x, mid - 2, bwi, 4); ctx.globalAlpha = 1; return; }
+    const v = clamp(e.dev, -lim, lim) / lim * (h/2 - 6);
+    ctx.fillStyle = Math.abs(e.dev) <= GOOD_MS ? C.good : C.warn;
+    ctx.fillRect(x, v > 0 ? mid - v : mid, bwi, Math.max(2, Math.abs(v))); ctx.globalAlpha = 1;
+  });
+  ctx.fillStyle = C.muted; ctx.font = `11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(`+${lim} ms`, 4, 3); ctx.textBaseline = 'bottom'; ctx.fillText(`\u2212${lim} ms`, 4, h - 3);
+}
+function drawVelChart(T){
+  const {ctx, w, h} = prepCanvas($('#chVel')); ctx.clearRect(0,0,w,h);
+  const dyn = T.d.dyn;
+  const all = dyn ? T.expected.filter(e => e.hand === 'R').sort((a,b) => a.beat - b.beat) : [...T.expected].sort((a,b) => a.beat - b.beat || a.pitch - b.pitch);
+  const n = all.length, bw = (w - 16) / Math.max(n,1);
+  const Yv = v => h - 4 - v/127*(h - 12);
+  all.forEach((e,i) => {
+    if (e.vel == null) return;
+    const x = 8 + i*bw + bw*0.15;
+    ctx.fillStyle = e.hand === 'L' ? C.muted : C.accent;
+    ctx.fillRect(x, Yv(e.vel), Math.max(1.5, bw*0.7), h - 4 - Yv(e.vel));
+  });
+  if (dyn) {
+    ctx.strokeStyle = C.ink; ctx.setLineDash([5,4]); ctx.lineWidth = 1.5; ctx.beginPath();
+    dyn.slice(0,n).forEach((t,i) => { const x = 8 + i*bw + bw/2, y = Yv(25 + t*95); i ? ctx.lineTo(x,y) : ctx.moveTo(x,y); });
+    ctx.stroke(); ctx.setLineDash([]);
+  } else {
+    const vs = all.filter(e => e.vel != null).map(e => e.vel);
+    if (vs.length) { const y = Yv(mean(vs)); ctx.strokeStyle = C.muted; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); ctx.setLineDash([]); }
+  }
+}
+function drawRtChart(T){
+  const {ctx, w, h} = prepCanvas($('#chTiming')); ctx.clearRect(0,0,w,h);
+  const R = T.quiz.results, n = T.quiz.prompts.length, bw = (w - 16)/n;
+  const max = Math.max(4000, ...R.map(r => r.rt)), goal = skill(T.d.id).rt;
+  const Yt = t => h - 16 - t/max*(h - 26);
+  ctx.strokeStyle = C.good; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(0, Yt(goal)); ctx.lineTo(w, Yt(goal)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font = `10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  R.forEach((r,i) => {
+    const x = 8 + i*bw + bw*0.15;
+    ctx.fillStyle = r.wrongs ? C.warn : C.good; ctx.fillRect(x, Yt(r.rt), bw*0.7, h - 16 - Yt(r.rt));
+    ctx.fillStyle = C.muted; ctx.fillText(r.q.staff ? r.q.staff.note : r.q.label, x + bw*0.35, h - 13);
+  });
+}
+
+/* ================= on-screen keyboard ================= */
+const keyEls = new Map();
+function buildKeyboard(){
+  const kb = $('#keyboard'); kb.innerHTML = ''; keyEls.clear();
+  const W = WHITES.length, ww = 100 / W;
+  WHITES.forEach(p => {
+    const el = document.createElement('div'); el.className = 'wk'; el.dataset.p = p;
+    if (p % 12 === 0 || WHITES.length <= 21) el.textContent = WHITES.length <= 21 ? (p % 12 === 0 ? noteName(p) : letter(p)) : noteName(p);
+    kb.appendChild(el); keyEls.set(p, el);
+  });
+  for (let p=VLO; p<=VHI; p++) if (isBlack(p)) {
+    const el = document.createElement('div'); el.className = 'bk'; el.dataset.p = p;
+    const bw = ww*0.62;
+    el.style.left = `${(WIDX.get(p-1)+1)*ww - bw/2}%`; el.style.width = `${bw}%`;
+    kb.appendChild(el); keyEls.set(p, el);
+  }
+}
+function setKey(p, down, res){
+  const el = keyEls.get(p); if (!el) return;
+  el.classList.toggle('down', down);
+  if (down) el.dataset.res = res || ''; else delete el.dataset.res;
+}
+let lastHint = '';
+function updateHints(){
+  const T = take; if (!T) return;
+  let set = [];
+  if (T.mode === 'quiz') {
+    const q = T.quiz.prompts[T.quiz.i];
+    if (T.state === 'running' && q && T.quiz.wrongsNow >= 2) set = q.pitch != null ? [q.pitch] : WHITES.concat([...keyEls.keys()].filter(isBlack)).filter(p => p%12 === q.pc);
+  } else if (T.state !== 'done' && T.mode !== 'calib' && T.mode !== 'record') {
+    const pend = T.expected.filter(e => e.status === null);
+    if (pend.length) { const b = T.mode === 'wait' ? T.cursorBeat : pend[0].beat; set = pend.filter(e => e.beat === b).map(e => e.pitch); }
+  }
+  const key = set.join(',');
+  if (key === lastHint) return;
+  lastHint = key;
+  keyEls.forEach((el, p) => el.classList.toggle('next', set.includes(p)));
+}
+function scrollPianoTo(){ fitView(); }
+// multi-touch: every finger is its own note
+const touchNotes = new Map();
+$('#keyboard').addEventListener('pointerdown', e => {
+  const k = e.target.closest('[data-p]'); if (!k) return;
+  e.preventDefault();
+  ensureAudio();
+  const p = Number(k.dataset.p);
+  touchNotes.set(e.pointerId, p); noteOn(p, 80, performance.now());
+});
+const releasePointer = e => { const p = touchNotes.get(e.pointerId); if (p != null) { touchNotes.delete(e.pointerId); noteOff(p, performance.now()); } };
+window.addEventListener('pointerup', releasePointer);
+window.addEventListener('pointercancel', releasePointer);
+$('#keyboard').addEventListener('contextmenu', e => e.preventDefault());
+
+/* ================= computer keyboard ================= */
+const KMAP = {a:0,w:1,s:2,e:3,d:4,f:5,t:6,g:7,y:8,h:9,u:10,j:11,k:12,o:13,l:14,p:15,';':16};
+window.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'select' || tag === 'textarea' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!$('#drawer').hidden && e.key === 'Escape') { closeChat(); return; }
+  if (e.code === 'Space') { if (tag === 'button' || tag === 'summary') return; e.preventDefault(); $('#btnGo').click(); return; }
+  const k = e.key.toLowerCase();
+  if (k === 'z' || k === 'x') { ui.octave = clamp(ui.octave + (k === 'z' ? -12 : 12), 24, 96); $('#octLabel').textContent = noteName(ui.octave); return; }
+  if (e.repeat || !(k in KMAP)) return;
+  ensureAudio(); noteOn(ui.octave + KMAP[k], 80, e.timeStamp || performance.now());
+});
+window.addEventListener('keyup', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+  const k = e.key.toLowerCase(); if (!(k in KMAP)) return;
+  noteOff(ui.octave + KMAP[k], e.timeStamp || performance.now());
+});
+
+/* ================= MIDI ================= */
+let midi = null;
+function setStatus(kind, text){ $('#midiDot').className = 'dot ' + kind; $('#midiText').textContent = text; }
+function onMidi(ev){
+  const d = ev.data; if (!d || d.length < 2) return;
+  let t = ev.timeStamp; const now = performance.now();
+  if (!(t > 0) || Math.abs(t - now) > 1000) t = now;
+  const cmd = d[0] & 0xF0;
+  if (cmd === 0x90 && d[2] > 0) noteOn(d[1], d[2], t);
+  else if (cmd === 0x80 || (cmd === 0x90 && d[2] === 0)) noteOff(d[1], t);
+  else if (cmd === 0xB0 && d[1] === 64) pedal(d[2] >= 64);
+}
+function refreshInputs(){
+  const sel = $('#midiSelect'), cur = sel.value, ins = [...midi.inputs.values()];
+  sel.innerHTML = '<option value="all">All MIDI inputs</option>' + ins.map(i => `<option value="${esc(i.id)}">${esc(i.name)}</option>`).join('');
+  sel.value = ins.some(i => i.id === cur) ? cur : 'all';
+  ins.forEach(i => { i.onmidimessage = (sel.value === 'all' || sel.value === i.id) ? onMidi : null; });
+  if (ins.length) { setStatus('ok', `Connected: ${ins.map(i=>i.name).join(', ')}`); $('#midiNotice').hidden = true; }
+  else setStatus('warn', 'No MIDI device found. Plug in the piano and switch it on.');
+}
+async function initMidi(){
+  if (!navigator.requestMIDIAccess) { setStatus('bad', 'This browser has no Web MIDI'); showNotice('Web MIDI isn\u2019t available here. You can still practise with the computer keyboard.'); return; }
+  try { midi = await navigator.requestMIDIAccess({sysex:false}); midi.onstatechange = refreshInputs; refreshInputs(); $('#midiRetry').hidden = true; }
+  catch (err) {
+    setStatus('bad', 'MIDI access was blocked'); $('#midiRetry').hidden = false;
+    showNotice(`The browser refused MIDI access (${err && err.name || 'error'}). Allow MIDI devices for this site in the browser\u2019s site settings, then press Connect piano. MIDI only works on https:// pages, localhost, or a file opened directly on a computer.`);
+  }
+}
+function showNotice(t){ const n = $('#midiNotice'); n.textContent = t; n.hidden = false; }
+$('#midiSelect').addEventListener('change', () => midi && refreshInputs());
+$('#midiRetry').addEventListener('click', initMidi);
+
+/* ================= lesson + controls ================= */
+function renderLesson(){
+  const d = ui.drill, u = d.recordSpec ? MINE : unitOf(d);
+  $('#stepNo').textContent = `Step ${u.n} of ${UNITS.length + 1}`;
+  $('#unitTitle').textContent = u.title;
+  $('#uWhat').textContent = u.what; $('#uWhy').textContent = u.why; $('#uHow').textContent = u.how;
+  $('#uLinks').innerHTML = u.links.length ? u.links.map(([k,t,url]) => `<span>${k}:</span><a href="${url}" target="_blank" rel="noopener">${esc(t)}</a>`).join(' ') + ' <span>(musictheory.net)</span>' : '';
+  const det = $('#lesson');
+  if (ui.lastUnit !== u.id) { det.open = !store.seen[u.id]; ui.lastUnit = u.id; }
+  if (!store.seen[u.id]) { store.seen[u.id] = 1; save(); }
+  $('#lessonToggle').textContent = det.open ? 'Hide intro' : 'Show intro';
+}
+$('#lesson').addEventListener('toggle', () => { $('#lessonToggle').textContent = $('#lesson').open ? 'Hide intro' : 'Show intro'; });
+
+function fillUnitSelect(){
+  const all = UNITS.concat(MINE.drills.length ? [MINE] : []);
+  $('#selUnit').innerHTML = all.map(u => `<option value="${u.id}">${u.n}. ${esc(u.title)}</option>`).join('');
+}
+function fillDrillSelect(uid){
+  const u = uid === 'mine' ? MINE : UNITS.find(x => x.id === uid);
+  $('#selDrill').innerHTML = u.drills.map(d => `<option value="${esc(d.id)}">${esc(d.title)}</option>`).join('');
+}
+function syncControls(){
+  const T = take, d = ui.drill;
+  if (!d.recordSpec) { $('#selUnit').value = d.unit; fillDrillSelect(d.unit); $('#selDrill').value = d.id; }
+  $('#bpm').value = T.bpm;
+  const quiz = T.mode === 'quiz', rec = T.mode === 'record';
+  ['#selUnit','#selDrill'].forEach(s => $(s).disabled = ui.auto);
+  ['#bpm','#bpmUp','#bpmDown'].forEach(s => $(s).disabled = (ui.auto && !rec) || quiz);
+  ['#modeWait','#modeTempo'].forEach(s => $(s).disabled = ui.auto || quiz || rec);
+  $('#segAuto').setAttribute('aria-pressed', ui.auto); $('#segManual').setAttribute('aria-pressed', !ui.auto);
+  $('#modeWait').setAttribute('aria-pressed', T.mode === 'wait'); $('#modeTempo').setAttribute('aria-pressed', T.mode === 'tempo');
+  $('#exTitle').textContent = d.title;
+  const s = peek(d.id);
+  const hands = T.ex.hand === 'B' ? 'Both hands' : T.ex.hand === 'L' ? 'Left hand' : T.ex.hand === 'R' ? 'Right hand' : '';
+  $('#exMeta').textContent = quiz ? `${d.prompts} notes${s && s.best ? `, best score ${s.best}` : ''}` : rec ? '' :
+    `${hands}${hands ? ', ' : ''}${T.mode === 'wait' ? 'at your own pace' : `${T.bpm} BPM (goal ${d.target})`}${s && s.best ? `, best score ${s.best}` : ''}`;
+  $('#reason').textContent = T.reason;
+  $('#listen').innerHTML = d.listen ? `<b>Listen for:</b> ${esc(d.listen)}` : '';
+  if (d.custom) $('#listen').innerHTML += ` <button class="linkish" id="delCustom">Delete this passage</button>`;
+  const dc = $('#delCustom'); if (dc) dc.onclick = () => deleteCustom(d.id);
+  $('#chatCtx').textContent = `Context: ${d.title}`;
+  syncGo();
+}
+function syncGo(){
+  const running = take && take.state === 'running', rec = take && take.mode === 'record';
+  const label = running ? (rec ? 'Stop and save' : 'Stop') : rec ? 'Start recording' : 'Start';
+  ['#btnGo','#btnGo2'].forEach(s => {
+    $(s).textContent = label;
+    $(s).classList.toggle('stop', !!running && !rec);
+    $(s).classList.toggle('recording', !!running && rec);
+  });
+  document.body.classList.toggle('running', !!running);
+  if (running) keepAwake();
+}
+/* keep the screen on while practising (released automatically when the app is in the background) */
+let wakeLock = null, wantWake = false;
+async function keepAwake(){
+  wantWake = true;
+  if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch(e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wantWake) keepAwake(); });
+/* focus mode */
+function setFocus(on){
+  document.body.classList.toggle('focus', on);
+  $('#btnFocus').setAttribute('aria-pressed', on);
+  $('#btnFocus').textContent = on ? 'Exit focus' : 'Focus';
+  const el = document.documentElement;
+  try {
+    if (on && !document.fullscreenElement && el.requestFullscreen) el.requestFullscreen({navigationUI:'hide'}).then(() => { try { screen.orientation.lock('landscape').catch(()=>{}); } catch(_){} }).catch(()=>{});
+    if (!on && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+  } catch(_) {}
+  requestAnimationFrame(() => $('.stage').scrollIntoView({block:'start'}));
+}
+$('#btnFocus').addEventListener('click', () => setFocus(!document.body.classList.contains('focus')));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('focus')) setFocus(false); });
+$('#btnGo2').addEventListener('click', () => $('#btnGo').click());
+$('#btnGo').addEventListener('click', () => {
+  if (take && take.state === 'running') { stopTake(); return; }
+  if (take && take.mode === 'record') { take.d.recordSpec.bar = Number($('#recBar').value) || 4; take = newTake(take.d, 'record', Number($('#recBpm').value) || 50, ''); }
+  startTake();
+});
+$('#segAuto').addEventListener('click', () => { if (take && take.state === 'running') stopTake(); ui.auto = true; coach.lastVerdict = null; loadAuto(); $('#summary').hidden = true; });
+$('#segManual').addEventListener('click', () => { if (take && take.state === 'running') stopTake(); ui.auto = false; if (ui.drill.recordSpec) { const d = DRILLS.get(CURRICULUM[0]); loadDrill(d, modeFor(d), skill(d.id).bpm, ''); } else syncControls(); $('#summary').hidden = true; });
+$('#selUnit').addEventListener('change', () => { fillDrillSelect($('#selUnit').value); const d = DRILLS.get($('#selDrill').value); loadDrill(d, modeFor(d), skill(d.id).bpm, ''); $('#summary').hidden = true; });
+$('#selDrill').addEventListener('change', () => { const d = DRILLS.get($('#selDrill').value); loadDrill(d, modeFor(d), skill(d.id).bpm, ''); $('#summary').hidden = true; });
+$('#modeWait').addEventListener('click', () => { ui.mode = 'wait'; loadManual(true); });
+$('#modeTempo').addEventListener('click', () => { ui.mode = 'tempo'; loadManual(true); });
+function setBpm(v){ v = clamp(Number(v) || 60, 30, 220); $('#bpm').value = v; if (take.mode === 'record') { $('#recBpm').value = v; take = newTake(take.d, 'record', v, ''); } else loadManual(true); }
+$('#bpm').addEventListener('change', () => setBpm($('#bpm').value));
+$('#bpmUp').addEventListener('click', () => setBpm(Number($('#bpm').value) + 4));
+$('#bpmDown').addEventListener('click', () => setBpm(Number($('#bpm').value) - 4));
+$('#recBpm').addEventListener('change', () => { $('#bpm').value = $('#recBpm').value; if (take.mode === 'record') take = newTake(take.d, 'record', Number($('#recBpm').value) || 50, ''); });
+$('#recBar').addEventListener('change', () => { if (take.mode === 'record') { take.d.recordSpec.bar = Number($('#recBar').value); take = newTake(take.d, 'record', take.bpm, ''); } });
+$('#metroOn').addEventListener('change', e => ui.metro = e.target.checked);
+$('#selView').addEventListener('change', () => { try { localStorage.setItem('pianoCoach.view', $('#selView').value); } catch(_){} fitView(); });
+$('#btnCalib').addEventListener('click', () => {
+  if (take && take.state === 'running') stopTake();
+  ui.prevDrill = ui.drill && !ui.drill.recordSpec ? ui.drill : null;
+  const notes = []; for (let i=0;i<12;i++) notes.push('C4:1');
+  const d = {id:'calib', unit:'keys', kind:'seq', title:'Timing calibration', R:notes.join(' '), start:90, target:90, skipWait:true, listen:'Tap any key exactly on each of the 12 clicks after the count-in.'};
+  ui.drill = d; take = newTake(d, 'calib', 90, 'This measures the small delay between your computer\u2019s click and your playing.');
+  renderLesson(); syncControls(); fitView(); $('#summary').hidden = true; startTake();
+});
+$('#btnNext').addEventListener('click', () => { if (ui.auto) loadAuto(); else { const d = ui.drill; loadDrill(d, modeFor(d), skill(d.id).bpm, ''); } startTake(); });
+$('#btnRetry').addEventListener('click', () => { const T = take; take = newTake(T.d, T.mode, T.bpm, T.reason); syncControls(); startTake(); });
+$('#btnAskTake').addEventListener('click', () => { openChat(); sendChat('Look at my last take. What is the one thing I should fix first, and how?'); });
+$('#btnRecord').addEventListener('click', () => { ui.auto = false; $('#summary').hidden = true; startRecordSetup(); });
+$('#btnReset').addEventListener('click', () => {
+  if (!confirm('Reset all progress? Tempos, scores, unlocked steps and history will be cleared. Your recorded passages are kept.')) return;
+  store.skills = {}; store.history = []; store.seen = {}; save(); Object.assign(coach, {lastId:null, lastWasNew:false, repeats:0, lastVerdict:null});
+  ui.auto = true; loadAuto(); $('#summary').hidden = true;
+});
+(function(){ const s = $('#recSplit'); let h = ''; for (let p=48; p<=72; p++) if (!isBlack(p)) h += `<option value="${p}"${p===60?' selected':''}>${noteName(p)}</option>`; s.innerHTML = h; })();
+
+/* ================= path panel ================= */
+function renderPath(){
+  const uu = unlockedUnitIdx();
+  let h = '';
+  UNITS.concat([MINE]).forEach((u, i) => {
+    const locked = u !== MINE && i > uu;
+    const passed = u.drills.filter(d => peek(d.id) && peek(d.id).passed).length;
+    h += `<li><div class="unit-h${locked ? ' locked' : ''}"><span>${u.n}. ${esc(u.title)}</span><small>${u === MINE ? (u.drills.length ? '' : 'none yet') : locked ? 'locked' : `${passed}/${u.drills.length}`}</small></div></li>`;
+    u.drills.forEach(d => {
+      const s = peek(d.id);
+      const pct = !s || !s.passed ? 0 : d.kind === 'quiz' ? Math.round(clamp((d.rtStart - s.rt)/(d.rtStart - d.rtGoal),0,1)*100) : Math.round(Math.min(1, s.bpm / d.target)*100);
+      const status = !s || !s.attempts ? (locked ? '' : 'new') : s.mastered ? 'mastered' : s.passed ? (d.kind === 'quiz' ? `${(s.rt/1000).toFixed(1)} s` : `${s.bpm} BPM`) : 'learning';
+      const cur = ui.drill && ui.drill.id === d.id;
+      h += `<li><button class="d${locked ? ' locked' : ''}" data-id="${esc(d.id)}" aria-current="${cur}"><span class="p-name">${esc(d.title)}</span><span class="p-bpm">${status}</span><span class="bar"><i class="${s && s.mastered ? 'm' : ''}" style="width:${pct}%"></i></span></button></li>`;
+    });
+  });
+  $('#path').innerHTML = h;
+  const passed = CURRICULUM.filter(id => peek(id) && peek(id).passed).length;
+  $('#pSummary').textContent = `${passed} of ${CURRICULUM.length} exercises passed`;
+  $('#goalLine').textContent = 'Built around your goal: River Flows in You, Kyle Landry arrangement. Locked steps can still be opened by choosing \u201cI pick\u201d.';
+}
+$('#path').addEventListener('click', e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  if (take && take.state === 'running') stopTake();
+  ui.auto = false;
+  const d = DRILLS.get(b.dataset.id);
+  loadDrill(d, modeFor(d), skill(d.id).bpm, '');
+  $('#summary').hidden = true;
+});
+
+/* ================= export / import ================= */
+$('#btnExport').addEventListener('click', () => {
+  const data = {app:'piano-coach', version:2, exportedAt:new Date().toISOString(), data:{skills:store.skills, latency:store.latency, custom:store.custom, history:store.history, goal:store.goal, seen:store.seen}};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `piano-coach-progress-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  setChip('good', 'Progress exported. Keep the file somewhere safe.');
+});
+$('#btnImport').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (!j || j.app !== 'piano-coach' || !j.data || typeof j.data.skills !== 'object') throw new Error('This isn\u2019t a Piano Coach progress file.');
+    const when = j.exportedAt ? new Date(j.exportedAt).toLocaleString() : 'an unknown date';
+    if (!confirm(`Replace your current progress with the file from ${when}?`)) return;
+    const D = j.data;
+    store.skills = D.skills || {}; store.latency = Number(D.latency) || 0; store.custom = Array.isArray(D.custom) ? D.custom : [];
+    store.history = Array.isArray(D.history) ? D.history : []; store.goal = D.goal || DEFAULT_GOAL; store.seen = D.seen || {};
+    save(); rebuildCustom(); fillUnitSelect(); $('#latVal').textContent = `${store.latency} ms`; $('#goalInput').value = store.goal;
+    ui.auto = true; Object.assign(coach, {lastId:null, lastWasNew:false, repeats:0, lastVerdict:null}); loadAuto(); $('#summary').hidden = true;
+    setChip('good', 'Progress imported.');
+  } catch (err) { setChip('bad', `Import failed: ${err.message}`); }
+});
+
+/* ================= coach chat ================= */
+const chat = [];
+function openChat(){ $('#drawer').hidden = false; $('#chatOpen').hidden = true; if (!chat.length && !$('#msgs').children.length) introChat(); setTimeout(() => $('#chatInput').focus(), 30); }
+function closeChat(){ $('#drawer').hidden = true; $('#chatOpen').hidden = false; }
+function introChat(){
+  addMsg('sys', apiKey ? 'Ask anything about this lesson, your last take or your piece. Your current exercise, progress and last result are sent along automatically.'
+                       : 'To chat here, add an Anthropic API key under Coach settings below. Without a key, use \u201cCopy your lesson context\u201d and paste it into a Claude chat.');
+}
+function md(s){
+  const inl = t => esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<i>$2</i>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  return s.trim().split(/\n{2,}/).map(block => {
+    const lines = block.split('\n').map(l => l.replace(/^#{1,6}\s+/, ''));
+    if (lines.every(l => /^\s*[-*\u2022] /.test(l))) return '<ul>' + lines.map(l => '<li>' + inl(l.replace(/^\s*[-*\u2022] /,'')) + '</li>').join('') + '</ul>';
+    if (lines.every(l => /^\s*\d+[.)] /.test(l))) return '<ol>' + lines.map(l => '<li>' + inl(l.replace(/^\s*\d+[.)] /,'')) + '</li>').join('') + '</ol>';
+    return '<p>' + lines.map(inl).join('<br>') + '</p>';
+  }).join('');
+}
+function addMsg(kind, text){
+  const el = document.createElement('div'); el.className = 'msg ' + kind;
+  if (kind === 'bot') el.innerHTML = md(text); else el.textContent = text;
+  $('#msgs').appendChild(el); $('#msgs').scrollTop = $('#msgs').scrollHeight; return el;
+}
+function buildContext(){
+  const d = ui.drill, u = d.recordSpec ? MINE : unitOf(d), s = peek(d.id);
+  const L = [];
+  L.push(`STUDENT'S GOAL: ${store.goal}`);
+  L.push('Instrument: Roland FP-10 digital piano (88 keys) over USB MIDI. The student owns the Kyle Landry arrangement score (A major, opening \u2669=55 rubato then \u2669=70, 4/4 with some 3/4 and 2/4 bars, climax marked "Con spirito").');
+  L.push(`\nCURRENT STEP ${u.n} of ${UNITS.length+1}: ${u.title}\nWhat: ${u.what}\nWhy: ${u.why}\nHow: ${u.how}`);
+  L.push(`\nCURRENT EXERCISE: ${d.title}${d.listen ? ` (focus: ${d.listen})` : ''}`);
+  if (take) L.push(`Mode: ${take.mode === 'wait' ? 'wait-for-me (no timing)' : take.mode === 'quiz' ? 'note-finding quiz' : take.mode === 'record' ? 'recording a passage' : `with metronome at ${take.bpm} BPM`}${d.target ? `; goal tempo ${d.target} BPM` : ''}.`);
+  if (take && take.expected.length && !d.custom) L.push(`Notes in this exercise: ${take.expected.map(e => `${e.hand}:${e.name}@beat${+(e.beat+1).toFixed(2)}(${e.dur}b)`).join(' ')}`);
+  if (s) L.push(`Stats for this exercise: ${s.attempts} attempts, best score ${s.best}, recent scores [${s.recent.join(', ')}], ${d.kind === 'quiz' ? `response-time goal ${(s.rt/1000).toFixed(1)} s` : `working tempo ${s.bpm} BPM`}, ${s.mastered ? 'mastered' : s.passed ? 'passed' : 'not passed yet'}.`);
+  if (lastAnalysis && lastAnalysis.drill === d.id) {
+    const A = lastAnalysis.A;
+    L.push(`\nLAST TAKE (${lastAnalysis.mode}${lastAnalysis.mode === 'tempo' ? ` at ${lastAnalysis.bpm} BPM` : ''}): score ${A.score}/100. ${A.quiz ? `${A.clean}/${A.n} right first try, median response ${(A.med/1000).toFixed(1)} s.` : `${A.hits}/${A.n} notes right, ${A.wrongs} wrong, ${A.missed} missed${A.timed ? `, average timing ${Math.round(A.mean)} ms (positive = late), spread \u00b1${Math.round(A.sd)} ms` : ''}, volume variation \u00b1${Math.round(A.vcv*100)}%.`}`);
+    L.push('Feedback shown to the student:\n' + A.insights.map(i => `- [${i[0]}] ${i[1]}`).join('\n'));
+    L.push(`App decision: ${lastAnalysis.D.msg}`);
+  }
+  const passed = CURRICULUM.filter(id => peek(id) && peek(id).passed);
+  L.push(`\nOVERALL: ${passed.length} of ${CURRICULUM.length} curriculum exercises passed. Currently unlocked up to step ${unlockedUnitIdx()+1} (${UNITS[unlockedUnitIdx()].title}).`);
+  if (passed.length) L.push('Passed: ' + passed.map(id => { const x = DRILLS.get(id), sk = peek(id); return `${x.title} (${x.kind === 'quiz' ? (sk.rt/1000).toFixed(1)+' s' : sk.bpm + ' BPM'})`; }).join('; '));
+  if (store.custom.length) L.push('Recorded passages from the score: ' + store.custom.map(c => `"${c.name}" (${c.notes.length} notes)`).join(', '));
+  const hist = store.history.slice(-8);
+  if (hist.length) L.push('Recent takes (oldest first):\n' + hist.map(h => `- ${h.at.slice(0,16).replace('T',' ')} ${DRILLS.get(h.d) ? DRILLS.get(h.d).title : h.d}: ${h.score}${h.bpm ? ` @${h.bpm} BPM` : ''}, ${h.verdict}${h.notes.length ? '; ' + h.notes.join(' ') : ''}`).join('\n'));
+  L.push(`\nFull path: ${UNITS.map(x => `${x.n}. ${x.title}`).join(' | ')} | ${MINE.n}. Your passages`);
+  return L.join('\n');
+}
+const SYSTEM = `You are the coach built into Piano Coach, a practice app for a self-taught adult beginner on a digital piano. The app measures each take over MIDI (pitch, timing against a metronome, loudness, note lengths) and gives you the student's goal, current lesson, last-take results and progress below.
+How to answer:
+- Ground advice in the data provided; never invent numbers or results the context doesn't contain.
+- Connect the lesson to the student's goal piece whenever it is natural, but don't reproduce the piece's melody or notes; refer to bars or sections instead and suggest recording hard spots as a passage drill.
+- Be concrete and brief: usually under 180 words, one main point, a specific practice instruction (what, how slow, how many repetitions).
+- Be warm and honest; don't over-praise. Plain text with light markdown (bold, short lists) only.
+- You cannot see the score. If a question needs it, ask the student to describe the bar.`;
+async function sendChat(text){
+  text = (text || '').trim(); if (!text) return;
+  addMsg('user', text); $('#chatInput').value = '';
+  if (!apiKey) { addMsg('err', 'No API key set. Add one under Coach settings, or copy your lesson context and ask in a Claude chat.'); $('#chatSettings').open = true; return; }
+  chat.push({role:'user', content:text});
+  const pending = addMsg('sys', 'Coach is thinking\u2026');
+  $('#chatSend').disabled = true;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model: apiModel, max_tokens: 1024, system: SYSTEM + '\n\n=== CONTEXT (refreshed with every message) ===\n' + buildContext(), messages: chat.slice(-16)})
+    });
+    const j = await res.json().catch(() => ({}));
+    pending.remove();
+    if (!res.ok) {
+      chat.pop();
+      const m = j && j.error && j.error.message ? j.error.message : `HTTP ${res.status}`;
+      addMsg('err', res.status === 401 ? 'The API key was rejected. Check it under Coach settings.' : res.status === 404 ? `Model not found (${m}). Check the model name under Coach settings.` : `The request failed: ${m}`);
+      return;
+    }
+    const reply = (j.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim() || '(empty reply)';
+    chat.push({role:'assistant', content:reply});
+    addMsg('bot', reply);
+  } catch (err) {
+    pending.remove(); chat.pop();
+    addMsg('err', `Couldn\u2019t reach Anthropic (${err.message}). Check your internet connection.`);
+  } finally { $('#chatSend').disabled = false; }
+}
+$('#chatOpen').addEventListener('click', openChat);
+$('#chatClose').addEventListener('click', closeChat);
+$('#chatSend').addEventListener('click', () => sendChat($('#chatInput').value));
+$('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat($('#chatInput').value); } });
+$('#quick').addEventListener('click', e => { const b = e.target.closest('button[data-q]'); if (b) sendChat(b.dataset.q); });
+$('#apiKey').value = apiKey; $('#apiModel').value = apiModel; $('#goalInput').value = store.goal;
+$('#apiKey').addEventListener('change', e => { apiKey = e.target.value.trim(); try { localStorage.setItem('pianoCoach.apiKey', apiKey); } catch(_){} });
+$('#apiModel').addEventListener('change', e => { apiModel = e.target.value.trim() || 'claude-sonnet-5-5'; e.target.value = apiModel; try { localStorage.setItem('pianoCoach.model', apiModel); } catch(_){} });
+$('#goalInput').addEventListener('change', e => { store.goal = e.target.value.trim() || DEFAULT_GOAL; save(); });
+$('#copyCtx').addEventListener('click', async () => {
+  const txt = 'I\u2019m practising piano with an app that tracks my playing. Here is my current lesson and progress:\n\n' + buildContext() + '\n\nMy question: ';
+  try { await navigator.clipboard.writeText(txt); addMsg('sys', 'Context copied. Paste it into a Claude chat and add your question at the end.'); }
+  catch (e) { addMsg('err', 'Copying was blocked by the browser.'); }
+});
+
+/* ================= boot ================= */
+$('#latVal').textContent = `${store.latency} ms`;
+(function(){ let v = null; try { v = localStorage.getItem('pianoCoach.view'); } catch(_){} $('#selView').value = v || (Math.min(screen.width, innerWidth) < 1000 ? 'fit' : 'all'); })();
+setRange(KB_LO, KB_HI);
+/* installable app: offline cache + install button */
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('#btnInstall').hidden = false; });
+$('#btnInstall').addEventListener('click', async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch(_){} installEvt = null; $('#btnInstall').hidden = true; });
+window.addEventListener('appinstalled', () => { $('#btnInstall').hidden = true; });
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+fillUnitSelect();
+loadAuto();
+initMidi();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
